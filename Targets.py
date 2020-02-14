@@ -15,306 +15,58 @@ import Build_dictionnaries
 import Simplification_rules
 import config
 from scipy import interpolate
-from scipy.interpolate import griddata
 
 # ============================================================================ #
 
-class Target:
+class Target():
 
-    def __init__(self, mode, fromfile = None):
-        self.mode = mode  #'test' or 'train'
-        self.from_file = fromfile
+    def __init__(self, filenames):
+        self.filenames = filenames
+        self.targets = []
+        for u in range(len(filenames)):
+            self.targets.append(self._definetargetfromfile(u))
 
-        if self.from_file is None: #define target with its analytical expression in target_list.txt
-            self.target = self._define_target()
+    def _definetargetfromfile(self, u):
 
-        else: #define target from data file
-            if len(self.from_file) == 1:
-                self.target = [self._definetargetfromfile()]
-                #self.mytarget = 'dummytarget' #todo ct quoi ca??
-            else:
-                self.target = []
-                for u in range(len(self.from_file)):
-                    self.target.append(self._definetargetfromfile(u))
+        data = np.loadtxt(self.filenames[u], delimiter=',')
+        n_targets = data.shape[1] -1
 
-    def _definetargetfromfile(self, u=0):
-        #adapter si plus de varables
-        n_targets = 1
-        n_variables = 1
-        maximal_size = config.maxsize
+        t = data[:, 0]
+        f0 = data[:, 1]
+        target_functions = [f0]
 
-        data = np.loadtxt(self.from_file[0], delimiter=',')
+        tck = interpolate.splrep(t, f0, s=0)
+        f0der = interpolate.splev(t, tck, der=1)
+        f0sec = interpolate.splev(t, tck, der=2)
 
-        x_train = data[:, 0]
-        f0_train = data[:, 1]
-        x_test = data[:, 0]
-        f0_test = data[:, 1]
-        print('taille target', self.mode, len(x_train))
+        first_derivatives = [f0der]
+        second_derivatives = [f0sec]
 
-        tck = interpolate.splrep(x_test, f0_test, s=0)
-        yder_test = interpolate.splev(x_test, tck, der=1)
-        ysec_test = interpolate.splev(x_test, tck, der=2)
+        if n_targets >1:
+            f1 = data[:, 2]
+            target_functions.append(f1)
+            tck = interpolate.splrep(t, f1, s=0)
+            f1der = interpolate.splev(t, tck, der=1)
+            f1sec = interpolate.splev(t, tck, der=2)
+            first_derivatives.append(f1der)
+            second_derivatives.append(f1sec)
 
-        tck = interpolate.splrep(x_train, f0_train, s=0)
-        yder_train = interpolate.splev(x_train, tck, der=1)
-        ysec_train = interpolate.splev(x_train, tck, der=2)
+        if n_targets>2:
+            f2 = data[:, 3]
+            target_functions.append(f2)
+            tck = interpolate.splrep(t, f2, s=0)
+            f2der = interpolate.splev(t, tck, der=1)
+            f2sec = interpolate.splev(t, tck, der=2)
+            first_derivatives.append(f2der)
+            second_derivatives.append(f2sec)
 
-        print('check important', x_train.size, f0_train.size, yder_train.size, ysec_train.size)
-        f_normalization_train = np.amax(np.abs(f0_train))
-        #f_normalization_train = 1/(0.0006103515625)**2
-        #f0_train = f0_train / f_normalization_train
+        if n_targets > 3:
+            print('not supported yet; vectors should be no more than in 3D space')
+            raise ValueError
 
-        f_normalization_train = 1
-
-        #f_normalization_test = np.amax(np.abs(f0_test))
-        #f_normalization_test = 1/(0.0006103515625)**2
-        #f0_test = f0_test / f_normalization_test
-        f_normalization_test = 1
-        range_x_train = x_train[-1] - x_train[0]
-        range_x_test = x_test[-1] - x_test[0]
-        #range_x_train = 1
-        #range_x_test = 1
-        if self.mode == 'train':
-            return n_targets, n_variables, [x_train], [np.asarray(f0_train)], f_normalization_train, [range_x_train], maximal_size, [yder_train, ysec_train]
-        else:
-            return n_targets, n_variables, [x_test], [np.asarray(f0_test)], f_normalization_test, [range_x_test], maximal_size, [yder_test, ysec_test]
-
-    def _define_target(self):
-        ''' Initialize game : builds the target given by target_list.txt '''
-        # format of target_list.txt must be one target per line, and of the form:
-        # n_targets, n_variables, expr1, train_set_type, train_set_range, test_set_type, test_set_range
-        all_targets = []
-        with open('target_list.txt') as myfile:
-            for line in myfile:
-                if line[0] != '#' and line[0] != '\n':
-                    all_targets.append(line)
-
-        print('all targets are: ', all_targets)
-        to_return = []
-
-        # ------ main loop on target list
-        for elem in all_targets:
-            mytarget = elem.replace(' ', '')
-            mytarget = mytarget.replace('\n', '')
-            mytarget = mytarget.split(',')
-            name = mytarget[0]
-            n_variables = int(mytarget[1])
-            target_function = mytarget[2] #is a string, ok
-            self.maximal_size = int(mytarget[-1])
-            train_set_type_x = mytarget[3]
-            test_set_type_x = mytarget[7]
-
-            if train_set_type_x == 'E':
-                train_set_range_x = [float(mytarget[4]), float(mytarget[5]), float(mytarget[6])]
-                range_x_train = train_set_range_x[1] - train_set_range_x[0]
-                x_train = np.linspace(train_set_range_x[0], train_set_range_x[1], num = int(range_x_train/train_set_range_x[2]))
-            elif train_set_type_x == 'U':
-                train_set_range_x = [float(mytarget[4]), float(mytarget[5]), int(mytarget[6])]
-                range_x_train = train_set_range_x[1] - train_set_range_x[0]
-                x_train = np.random.uniform(train_set_range_x[0], train_set_range_x[1], train_set_range_x[2])
-                x_train = np.sort(x_train)
-            else:
-                print('training dataset not understood check spelling')
-                raise ValueError
-
-            if test_set_type_x == 'E':
-                test_set_range_x = [float(mytarget[8]), float(mytarget[9]), float(mytarget[10])]
-                range_x_test = test_set_range_x[1] - test_set_range_x[0]
-                x_test = np.linspace(test_set_range_x[0], test_set_range_x[1], num=int((test_set_range_x[1]-test_set_range_x[0])/test_set_range_x[2]))
-                print('taille train target', len(x_train))
-            elif test_set_type_x == 'U':
-                test_set_range_x = [float(mytarget[8]), float(mytarget[9]), int(mytarget[10])]
-                range_x_test = test_set_range_x[1] - test_set_range_x[0]
-                x_test = np.random.uniform(test_set_range_x[0], test_set_range_x[1], test_set_range_x[2])
-                x_test = np.sort(x_test)
-            else:
-                print('testing dataset not understood')
-                raise ValueError
-
-            # ----------------------------------#
-            if n_variables > 1:
-                train_set_type_y = mytarget[11]
-                test_set_type_y = mytarget[15]
-                if train_set_type_y == 'E':
-                    train_set_range_y = [float(mytarget[12]), float(mytarget[13]), float(mytarget[14])]
-                    range_y_train = train_set_range_y[1] - train_set_range_y[0]
-                    y_train = np.linspace(train_set_range_y[0], train_set_range_y[1], num=int(range_y_train/train_set_range_y[2]))
-                elif train_set_type_y == 'U':
-                    train_set_range_y = [float(mytarget[12]), float(mytarget[13]), int(mytarget[14])]
-                    range_y_train = train_set_range_y[1] - train_set_range_y[0]
-                    y_train = np.random.uniform(train_set_range_y[0], train_set_range_y[1], train_set_range_y[2])
-                    y_train = np.sort(y_train)
-                else:
-                    print('training dataset not understood')
-                    raise ValueError
-                if test_set_type_y == 'E':
-                    test_set_range_y = [float(mytarget[16]), float(mytarget[17]), float(mytarget[18])]
-                    range_y_test = test_set_range_y[1] - test_set_range_y[0]
-                    y_test = np.linspace(test_set_range_y[0], test_set_range_y[1], num=int((test_set_range_y[1]-test_set_range_y[0])/test_set_range_y[2]))
-                elif test_set_type_y == 'U':
-                    test_set_range_y = [float(mytarget[16]), float(mytarget[17]), int(mytarget[18])]
-                    range_y_test = test_set_range_y[1] - test_set_range_y[0]
-                    y_test = np.random.uniform(test_set_range_y[0], test_set_range_y[1], test_set_range_y[2])
-                    y_test = np.sort(y_test)
-                elif test_set_type_y == 'None':
-                    y_test = y_train
-                else:
-                    print('testing dataset not understood')
-                    raise ValueError
-
-            if n_variables > 2:
-                train_set_type_z = mytarget[19]
-                test_set_type_z = mytarget[23]
-                if train_set_type_z == 'E':
-                    train_set_range_z = [float(mytarget[20]), float(mytarget[21]), float(mytarget[22])]
-                    range_z_train = train_set_range_z[1] - train_set_range_z[0]
-                    z_train = np.linspace(train_set_range_z[0], train_set_range_z[1], num=int(range_z_train/train_set_range_z[2]))
-                elif train_set_type_z == 'U':
-                    train_set_range_z = [float(mytarget[20]), float(mytarget[21]), int(mytarget[22])]
-                    range_z_train = train_set_range_z[1] - train_set_range_z[0]
-                    z_train = np.random.uniform(train_set_range_z[0], train_set_range_z[1], train_set_range_z[2])
-                    z_train = np.sort(z_train)
-                else:
-                    print('training dataset not understood')
-                    raise ValueError
-
-                if test_set_type_z == 'E':
-                    test_set_range_z = [float(mytarget[24]), float(mytarget[25]), float(mytarget[26])]
-                    range_z_test = test_set_range_z[1] - test_set_range_z[0]
-                    z_test = np.linspace(test_set_range_z[0], test_set_range_z[1], num=int((test_set_range_z[1]-test_set_range_z[0])/test_set_range_z[2]))
-                elif test_set_type_z == 'U':
-                    test_set_range_z = [float(mytarget[24]), float(mytarget[25]), int(mytarget[26])]
-                    range_z_test = test_set_range_z[1] - test_set_range_z[0]
-                    z_test = np.random.uniform(test_set_range_z[0], test_set_range_z[1], test_set_range_z[2])
-                    z_test = np.sort(z_test)
-                elif test_set_type_z == 'None':
-                    z_test = z_train
-                else:
-                    print('testing dataset not understood')
-                    raise ValueError
-
-            if n_variables > 3:
-                train_set_type_t = mytarget[27]
-                test_set_type_t = mytarget[31]
-                if train_set_type_t == 'E':
-                    train_set_range_t = [float(mytarget[28]), float(mytarget[29]), float(mytarget[30])]
-                    range_t_train = train_set_range_t[1] - train_set_range_t[0]
-                    t_train = np.linspace(train_set_range_t[0], train_set_range_t[1], num=int(range_t_train/train_set_range_t[2]))
-                elif train_set_type_t == 'U':
-                    train_set_range_t = [float(mytarget[28]), float(mytarget[29]), int(mytarget[30])]
-                    range_t_train = train_set_range_t[1] - train_set_range_t[0]
-                    t_train = np.random.uniform(train_set_range_t[0], train_set_range_t[1], train_set_range_t[2])
-                    t_train = np.sort(t_train)
-                else:
-                    print('training dataset not understood')
-                    raise ValueError
-                if test_set_type_t == 'E':
-                    test_set_range_t = [float(mytarget[32]), float(mytarget[33]), float(mytarget[34])]
-                    range_t_test = test_set_range_t[1] - test_set_range_t[0]
-                    t_test = np.linspace(test_set_range_t[0], test_set_range_t[1], num=int((test_set_range_t[1]-test_set_range_t[0])/test_set_range_t[2]))
-                elif test_set_type_t == 'U':
-                    test_set_range_t = [float(mytarget[32]), float(mytarget[33]), int(mytarget[34])]
-                    range_t_test = test_set_range_t[1] - test_set_range_t[0]
-                    t_test = np.random.uniform(test_set_range_t[0], test_set_range_t[1], test_set_range_t[2])
-                    t_test = np.sort(t_test)
-                elif test_set_type_t == 'None':
-                    t_test = t_train
-                else:
-                    print('testing dataset not understood')
-                    raise ValueError
-
-            # Then : ------------------------------------------------#
-            if n_variables == 1:
-                # eval functions
-                x = x_train
-                f0_train = eval(target_function)
-                x = x_test
-                f0_test = eval(target_function)
-                # eval derivatives with interpolate
-                tck = interpolate.splrep(x_train, f0_train, s=0)
-                yder_train = interpolate.splev(x_train, tck, der=1)
-                ysec_train = interpolate.splev(x_train, tck, der=2)
-                tck = interpolate.splrep(x_test, f0_test, s=0)
-                yder_test = interpolate.splev(x_test, tck, der=1)
-                ysec_test = interpolate.splev(x_test, tck, der=2)
-                range_x_train = 1
-                range_x_test = 1
-                if self.mode == 'train':
-                    thistarget = [name, n_variables, [x_train / range_x_train], [f0_train], [range_x_train], self.maximal_size, [yder_train, ysec_train]]
-                    to_return.append(thistarget)
-                else:
-                    thistarget = [name, n_variables, [x_test/range_x_test], [f0_test], [range_x_test], self.maximal_size, [yder_test, ysec_test]]
-                    to_return.append(thistarget)
-
-            elif n_variables == 2:
-                # todo add interpolate deriv in higher dim??
-                X_train, Y_train = np.meshgrid(x_train, y_train, indexing='ij')
-                X_test, Y_test= np.meshgrid(x_test, y_test, indexing='ij')
-
-                x, y = X_train, Y_train
-                f0_train = eval(target_function)
-                x, y = X_test, Y_test
-                f0_test = eval(target_function)
-
-                if self.mode == 'train':
-                    thistarget = [name, n_variables, [X_train/range_x_train, Y_train/range_y_train], f0_train, [range_x_train, range_y_train], self.maximal_size]
-                    to_return.append(thistarget)
-                else:
-                    thistarget = [name, n_variables, [X_test/range_x_test, Y_test/range_y_test], f0_test, [range_x_test, range_y_test], self.maximal_size]
-                    to_return.append(thistarget)
-
-            # ------------------------------------------------#
-            elif n_variables == 3:
-                X_train, Y_train, Z_train = np.meshgrid(x_train, y_train, z_train, indexing='ij')
-                X_test, Y_test, Z_test = np.meshgrid(x_test, y_test, z_test, indexing='ij')
-
-                x, y, z = X_train, Y_train, Z_train
-                f0_train = eval(target_function)
-                x, y, z = X_test, Y_test, Z_test
-                f0_test = eval(target_function)
-
-                if self.mode == 'train':
-                    to_return = [name, n_variables, [X_train / range_x_train, Y_train / range_y_train, Z_train / range_z_train], f0_train, [range_x_train, range_y_train, range_z_train], self.maximal_size]
-                    to_return.append(thistarget)
-                else:
-                    to_return = [name, n_variables, [X_test/range_x_test, Y_test/range_y_test, Z_test/range_z_test], f0_test, [range_x_test, range_y_test, range_z_test], self.maximal_size]
-                    to_return.append(thistarget)
-
-            elif n_variables == 4:
-
-                X_train, Y_train, Z_train, T_train = np.meshgrid(x_train, y_train, z_train, t_train, indexing='ij')
-                X_test, Y_test, Z_test, T_test = np.meshgrid(x_test, y_test, z_test, t_test, indexing='ij')
-
-                x, y, z, t = X_train, Y_train, Z_train, T_train
-                f0_train = eval(target_function)
-                x, y, z, t = X_test, Y_test, Z_test, T_test
-                f0_test = eval(target_function)
-
-                print(f0_train.shape)
-                # interpolate grid
-                #grid_x, grid_y, grid_z, grid_t = np.mgrid[0:1:10j, 0:1:10j,0:1:10j,0:1:10j]
-                #grid_f_train = griddata((x_train,y_train,z_train,t_train), f0_test, (grid_x, grid_y), method='linear')
-
-                #mettons que cette data est E_x : on veut renvoyer les 4 derivées partielles d_x E_x
-                # en soi de facon "exacte" ici d_i Ex c'est fo[i+1, :,:,:] _ f[i, :, :, :]
-                first_derivative = []
-                step_x = range_x_train/X_train.size
-                first_derivative.append(np.diff(f0_train, axis=0)/step_x)
-                step_y = range_y_train / Y_train.size
-                first_derivative.append(np.diff(f0_train, axis=1) / step_y)
-                step_z = range_z_train/Z_train.size
-                first_derivative.append(np.diff(f0_train, axis=2)/step_z)
-                step_t = range_t_train / T_train.size
-                first_derivative.append(np.diff(f0_train, axis=3) / step_t)
+        return n_targets, t, target_functions, first_derivatives, second_derivatives
 
 
-                if self.mode == 'train':
-                    thistarget = [name, n_variables, [X_train / range_x_train, Y_train / range_y_train, Z_train / range_z_train, T_train/range_t_train], f0_train, [range_x_train, range_y_train, range_z_train, range_t_train], self.maximal_size, first_derivative]
-                    to_return.append(thistarget)
-                else:
-                    thistarget = [name, n_variables, [X_test / range_x_test, Y_test / range_y_test, Z_test / range_z_test, T_test/range_z_test], f0_test, [range_x_test,range_y_test,range_z_test, range_t_test], self.maximal_size, first_derivative]
-                    to_return.append(thistarget)
-        return to_return
 
 class Voc():
     def __init__(self, target, modescalar):

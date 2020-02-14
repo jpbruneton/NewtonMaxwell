@@ -2,17 +2,6 @@ import run_one_target
 import config
 from Targets import Target, Voc
 
-def load_targets():
-    # init targets
-    if config.fromfile:
-        train_targets = Target('train', which_target).target
-        test_targets = Target('test', which_target).target
-    else:
-        train_targets = Target('train', None).target
-        test_targets = Target('test', None).target
-    return train_targets, test_targets
-
-
 # -----------------------------------------------#
 def init_everything(train_target, test_target):
     # init dictionnaries
@@ -61,22 +50,31 @@ def init_everything(train_target, test_target):
     return params
 
 # -----------------------------------------------#
+def kill_print():
+    import sys
+    class writer(object):
+        log = []
+
+        def write(self, data):
+            self.log.append(data)
+
+    logger = writer()
+    sys.stdout = logger
+    sys.stderr = logger
+
+# -----------------------------------------------#
 if __name__ == '__main__':
     # don't display any output
     noprint = False
     if noprint:
-        import sys
-        class writer(object):
-            log = []
+        kill_print()
 
-            def write(self, data):
-                self.log.append(data)
+    filenames_train = ['data_loader/x1_train(t).csv','data_loader/x2_train(t).csv']
+    filenames_test = ['data_loader/x1_test(t).csv','data_loader/x2_test(t).csv']
 
-        logger = writer()
-        sys.stdout = logger
-        sys.stderr = logger
+    train_targets = Target(filenames_train).targets
+    test_targets = Target(filenames_test).targets
 
-    train_targets, test_targets = load_targets() # renvoie une liste de toutes les targets, Ex, Ey, Ez, x(t), etc
 
     # on résout une par une
     for u in range(len(train_targets)):

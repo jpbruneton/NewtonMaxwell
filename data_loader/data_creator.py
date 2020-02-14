@@ -5,9 +5,9 @@ set_types = ['E', 'U']
 intervals = [[-1, 1], [-2,2]]
 steps = [100, 100]
 
-target_x = '2*np.cos(3*t)'
-target_y = '3*np.cos(3*t -0.568)'
-target_z = '2.3*t'
+target_x = '5*np.cos(2*t)'
+target_y = '1.2*np.cos(2*t -0.568)'
+target_z = '3.3*t'
 
 # first create train function then test functions
 for u in range(2):
@@ -24,6 +24,6 @@ for u in range(2):
     dat = np.transpose(np.array([t, x_t, y_t, z_t]))
     print(dat.shape)
     if u == 0:
-        np.savetxt('x1_train(t).csv', dat, delimiter=',')
+        np.savetxt('x2_train(t).csv', dat, delimiter=',')
     else:
-        np.savetxt('x1_test(t).csv', dat, delimiter=',')
+        np.savetxt('x2_test(t).csv', dat, delimiter=',')
