@@ -104,7 +104,7 @@ if __name__ == '__main__':
     # train et test de la forme [t #l'array de la variable, [les n targets], [les n der premieres], [les n der secondes]] avec un t commun
 
 
-    # on résout une par une
+    # on résout une par une a revoir
     for u in range(len(train_targets)):
         train_target = train_targets[u]
         test_target = test_targets[u]
