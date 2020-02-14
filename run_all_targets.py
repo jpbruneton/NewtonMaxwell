@@ -62,6 +62,33 @@ def kill_print():
     sys.stdout = logger
     sys.stderr = logger
 
+def load_targets(filenames_train, filenames_test):
+    train = Target(filenames_train).targets
+    test = Target(filenames_test).targets
+
+    # flatten all targets
+    train_targets = [train[0][0]]
+    test_targets = [test[0][0]]
+
+    funcs = []
+    fder = []
+    sder = []
+    for u in range(len(train)):
+        funcs.extend(train[u][1])
+        fder.extend(train[u][2])
+        sder.extend(train[u][3])
+    train_targets.extend([funcs, fder, sder])
+
+    funcs = []
+    fder = []
+    sder = []
+    for u in range(len(test)):
+        funcs.extend(test[u][1])
+        fder.extend(test[u][2])
+        sder.extend(test[u][3])
+    test_targets.extend([funcs, fder, sder])
+    return train_targets, test_targets
+
 # -----------------------------------------------#
 if __name__ == '__main__':
     # don't display any output
@@ -72,8 +99,9 @@ if __name__ == '__main__':
     filenames_train = ['data_loader/x1_train(t).csv','data_loader/x2_train(t).csv']
     filenames_test = ['data_loader/x1_test(t).csv','data_loader/x2_test(t).csv']
 
-    train_targets = Target(filenames_train).targets
-    test_targets = Target(filenames_test).targets
+
+    train_targets, test_targets = load_targets(filenames_train, filenames_test)
+    # train et test de la forme [t #l'array de la variable, [les n targets], [les n der premieres], [les n der secondes]] avec un t commun
 
 
     # on résout une par une

@@ -64,7 +64,7 @@ class Target():
             print('not supported yet; vectors should be no more than in 3D space')
             raise ValueError
 
-        return n_targets, t, target_functions, first_derivatives, second_derivatives
+        return [t, target_functions, first_derivatives, second_derivatives]
 
 
 
