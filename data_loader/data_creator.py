@@ -3,7 +3,7 @@ import numpy as np
 # here we create a simple helix data in 3D
 set_types = ['E', 'U']
 intervals = [[-1, 1], [-2,2]]
-steps = [100, 100]
+steps = [10000, 10000]
 
 target_x = '5*np.cos(2*t)'
 target_y = '1.2*np.cos(2*t -0.568)'

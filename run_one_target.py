@@ -151,9 +151,9 @@ def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, c
 
 
         # save results and print
-        saveme = printresults(test_target, voc)
+        saveme = printresults(train_targets, voc)
         tnumber = 999
-        valrmse, bf = saveme.saveresults(newbin, replacements, i, gp.QD_pool, gp.maxa, tnumber, local_alleqs, prefix)
+        valrmse, bf = saveme.saveresults(newbin, replacements, i, gp.QD_pool, gp.maxa, tnumber, local_alleqs, prefix, u, look_for)
 
         if valrmse <config.termination_nmrse:
             del results

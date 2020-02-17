@@ -4,7 +4,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
 
     # ============  arity 0 symbols =======================
     if calculus_mode == 'scalar':
-        my_dic_scalar_number = ['A_scal']
+        my_dic_scalar_number = ['A']
         my_dic_vec_number = []
     else:
         my_dic_scalar_number = ['A_scal'] #we need both e.g. F = q v^B in Lorentz force : q is a one_scalar

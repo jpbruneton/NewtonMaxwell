@@ -170,7 +170,7 @@ class GP_QD():
         cnotif=0
         # rescale and print which bin
         for oneresult in results:
-            rms, state, allA, Anumber, L, function_number, powernumber, trignumber, explognumber, fnumber, deronenumber, depth = oneresult
+            rms, state, allA, Anumber, L, function_number, powernumber, fnumber, deronenumber, depth = oneresult
             #print(reward, state, allA, Anumber, L, function_number, powernumber, trignumber, explognumber)
             #if state.reversepolish[-1] == 1:
             #    L = L - 1
@@ -316,7 +316,7 @@ class printresults():
                     rename += char
 
             rename = rename.replace('np.', '')
-            rename = rename.replace('x0', 'x')
+            rename = rename.replace('x0', 't')
             rename = rename.replace('x1', 'y')
             rename = rename.replace('x2', 'z')
 
@@ -345,7 +345,7 @@ class printresults():
         return rename
 
 
-    def saveresults(self, newbin, replacements, i, QD_pool, maxa, target_number, alleqs, prefix):
+    def saveresults(self, newbin, replacements, i, QD_pool, maxa, target_number, alleqs, prefix, u, look_for):
 
         # rank by number of free parameters
         bests = []
@@ -364,8 +364,8 @@ class printresults():
                 thebest = sort[0]
                 thebestformula = thebest[1].formulas
                 thebest_as = thebest[2]
-                simple = game_env.simplif_eq(self.voc, thebest[1])
-                best_simplified_formulas.append(simple.formulas)
+                #simple = game_env.simplif_eq(self.voc, thebest[1])
+                #best_simplified_formulas.append(simple.formulas)
                 bests.append([thebest[0], self.finalrename(thebestformula, thebest_as)])
 
         # best of all
@@ -382,8 +382,7 @@ class printresults():
 
         if np.isnan(bestreward) or np.isinf(bestreward):
             bestreward=100000000
-
-        evaluate = Evaluatefit(best_formula, self.voc, self.target, 'test', 0)
+        evaluate = Evaluatefit(best_formula, self.voc, self.target, 'train', u, look_for)
         evaluate.rename_formulas()
 
         validation_reward = evaluate.eval_reward_nrmse(with_a_best)
@@ -418,15 +417,15 @@ class printresults():
             with_a = x[2]
 
             formula = state.formulas
-            for u in range(len(config.training_target_list)):
-                evaluate = Evaluatefit(formula, self.voc, self.target, 'test',u)
-                evaluate.rename_formulas()
-                avg_validation_reward += evaluate.eval_reward_nrmse(with_a)
+
+            evaluate = Evaluatefit(formula, self.voc, self.target, 'train',u, look_for)
+            evaluate.rename_formulas()
+            avg_validation_reward += evaluate.eval_reward_nrmse(with_a)
         avg_validation_reward /= len(rank)
 
         timespent = time.time() - eval(prefix)/10000000
         if config.uselocal:
-            filepath = './localdata/' + prefix + 'results_target_' + str(target_number) + '.txt'
+            filepath = './results/' + prefix + 'results_target_' + str(target_number) + '.txt'
         else:
             filepath = '/home/user/results/'+ prefix+ 'results_target_' + str(target_number) + '.txt'
         with open(filepath, 'a') as myfile:

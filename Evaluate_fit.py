@@ -34,15 +34,14 @@ class Evaluatefit:
         self.scalar_numbers = 0
         self.maximal_size = voc.maximal_size
 
-        self.variable = self.train_targets[0][1] #00 is the name
-        self.range = self.variable[-1] - self.variable[0]
+        self.variable = [self.train_targets[0][1]] #00 is the name
         self.mytarget = self.train_targets[u]
         self.mytarget_function = self.mytarget[2]
         self.mytarget_1der = self.mytarget[3]
         self.mytarget_2der = self.mytarget[4]
-        self.xsize = self.variable.shape[0]
-        self.stepx = self.range/self.xsize #only works if mode = 'E'
 
+        self.array_functions = [x[2] for x in self.train_targets]
+        self.array_first_der = [x[3] for x in self.train_targets]
         #print(self.mytarget_function.shape, self.mytarget_1der.shape, self.mytarget_2der.shape)
         #todo why so many prints ? il surloade
 
@@ -59,13 +58,11 @@ class Evaluatefit:
     # ---------------------------------------------------------------------------- #
     def rename_formulas(self):
         ''' index all the scalar 'A' by a A1, A2, etc, rename properly the differentials, and finally resize as it must '''
+
         neweq = ''
 
-        # rename the A's
         self.scalar_numbers = self.formulas.count('A')
-
-        #CMAES doent work with only one scalar
-        if self.scalar_numbers == 1:
+        if self.scalar_numbers == 1: #CMAES doent work with only one scalar
             self.formulas += '+ A'
             self.scalar_numbers = 2
 
@@ -76,55 +73,31 @@ class Evaluatefit:
                 A_count += 1
             else:
                 neweq += char
-        print(neweq)
+
         highest_der = 0
         for u in range(1,self.maxder):
             if 'd'*u in neweq:
                 highest_der += 1
 
         if highest_der != 0 :
-
             for u in range(1, highest_der+1):
-                if highest_der-u > 0:
-                    arr = '[:-' + str(highest_der-u) + ']'
-                    arr = '[:]'
-                else:
-                    arr = '[:]'
-                look_for = 'd'*u + '_x0'*u + '_f0'
-                replace_by = 'np.diff(f[0]' + arr + ',' +str(u) +')/('  + str(self.step) +'**' +str(u)+')'
-                replace_by = 'f'+'p'*u
-                neweq = neweq.replace(look_for, replace_by)
+                for v in range(len(self.train_targets)):
+                    toreplace = 'd'*u + '_x0'*u + '_f'+str(v)
+                    replace_by = 'f'+'p'*u+ str(v)
+                    neweq = neweq.replace(toreplace, replace_by)
 
-        if highest_der != 0 :
-            base_array = '[:-' + str(highest_der) + ']'
-            base_array = '[:]'
-        else:
-            base_array = '[:]'
         string_to_replace = 'x0'
-        replace_by = '(x[0]' + base_array +')'#+ '*' + str(self.ranges[0]) + ')'
+        replace_by = '(x[0][:])'
         neweq = neweq.replace(string_to_replace, replace_by)
 
-        string_to_replace = 'f0'
-        replace_by = 'f[0]' + base_array
-        neweq = neweq.replace(string_to_replace, replace_by)
-
-        string_to_replace  = 'one'
-        replace_by = '1.0'
-        neweq = neweq.replace(string_to_replace, replace_by)
-
-        string_to_replace = 'two'
-        replace_by = '2.0'
-        neweq = neweq.replace(string_to_replace, replace_by)
-
-        string_to_replace = 'neutral'
-        replace_by = '1.0'
-        neweq = neweq.replace(string_to_replace, replace_by)
-
-        string_to_replace = 'zero'
-        replace_by = '0.0'
-        neweq = neweq.replace(string_to_replace, replace_by)
+        for u in range(len(self.train_targets)):
+            string_to_replace = 'f'+str(u)
+            replace_by = 'f['+str(u)+'][:]'
+            neweq = neweq.replace(string_to_replace, replace_by)
+            string_to_replace = 'fp' + str(u)
+            replace_by = 'fp[' + str(u) + '][:]'
+            neweq = neweq.replace(string_to_replace, replace_by)
         self.formulas = neweq
-
     # ---------------------------------------------------------------------------- #
     def formula_eval(self, x, f, fp, A) :
         try:
@@ -161,46 +134,17 @@ class Evaluatefit:
     # ---------------------------------------------------------------------------- #
     def evaluation_target(self, a):
         err = 0
-        success, eval = self.formula_eval(self.variables, self.targets, self.derivatives[0], a)
+        success, eval = self.formula_eval(self.variable, self.array_functions, self.array_first_der, a)
 
         if success == True:
-            resize_eval = eval[:self.mavraitarget.size]
-            diff = resize_eval - self.mavraitarget
+            resize_eval = eval[:self.objectivefunction.size]
+            diff = resize_eval - self.objectivefunction
             err += (np.sum(diff**2))
             err /= np.sum(np.ones_like(diff))
         else:
             return 1200000
 
         return err
-
-    # -----------------------------------------
-    def finish_with_least_squares_target(self, a):
-        # this flattens the training data : this is required for least squares method : must be a size-1 array!
-        flatfun = []
-        res = self.func(a, self.targets, self.variables)
-
-        if self.n_variables == 1:
-            for i in range(self.xsize):
-                flatfun.append(res[i])
-
-        if self.n_variables == 2:
-            for i in range(self.xsize):
-                for j in range(self.ysize):
-                    flatfun.append(res[i, j])
-
-        if self.n_variables == 3:
-            for i in range(self.xsize):
-                for j in range(self.ysize):
-                    for k in range(self.zsize):
-                        flatfun.append(res[i, j, k])
-
-        return np.asarray(flatfun)
-
-    # ---------------------------------------------------------------------------- #
-    def fit(self, reco):
-        # applies least square fit starting from the recommendation of cmaes :
-        x0 = reco
-        return least_squares(self.finish_with_least_squares_target, x0, jac='2-point', loss='cauchy', args=())
 
     # ---------------------------------------------------------------------------- #
     def func(self, A, f, x):
@@ -230,37 +174,16 @@ class Evaluatefit:
 
         return True, rec
 
-    # -------------------------------------------------------------------------------  #
-    def best_A_least_squares(self, reco):
-    # calls least square fit from cmaes reco :
-        try:
-            ls_attempt = self.fit(reco)
-
-        except (RuntimeWarning, RuntimeError, ValueError, ZeroDivisionError, OverflowError, SystemError, AttributeError):
-            return False, [1]*self.scalar_numbers
-
-        success = ls_attempt.success
-        if success:
-            reco_ls = ls_attempt.x
-            # transforms array into list
-            rec = []
-            for u in range(reco_ls.size):
-                rec.append(reco_ls[u])
-            return True, rec
-
-        else:
-            return False, [1]*self.scalar_numbers
-
 
     def eval_reward_nrmse(self, A):
     #for validation only
-        success, result = self.formula_eval(self.variables, self.targets, self.derivatives[0], A)
+        success, result = self.formula_eval(self.variable, self.array_functions, self.array_first_der, A)
         if success:
-            resize_result = result[:self.mavraitarget.size]
-            quadratic_cost = np.sum((self.mavraitarget - resize_result)**2)
-            n = self.mavraitarget.size
+            resize_result = result[:self.objectivefunction.size]
+            quadratic_cost = np.sum((self.objectivefunction - resize_result)**2)
+            n = self.objectivefunction.size
             rmse = np.sqrt(quadratic_cost / n)
-            nrmse = rmse / np.std(self.mavraitarget)
+            nrmse = rmse / np.std(self.objectivefunction)
             return nrmse
 
         else:
@@ -272,8 +195,8 @@ class Evaluatefit:
 
         np.seterr(all = 'ignore')
         allA = []
-        failure_reward = -1
         self.rename_formulas()
+
         if self.scalar_numbers == 0:
             rms = self.eval_reward_nrmse(allA)
             if rms > 100000000:
