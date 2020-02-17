@@ -1,67 +1,69 @@
 import config
 
-def get_dic(n_targets, n_variables, modescalar):
-    # =================   stop symbol
-    my_dic_halt=['halt']
+def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
 
     # ============  arity 0 symbols =======================
-    my_dic_any_scalars = ['A']
-    my_dic_integer_scalars = config.list_scalars
-    # targets are f0, f1, ...
-
-    if config.includetarget:
-        my_dic_targets = []
-        if n_targets == 0:
-            print('there must be at least one target function')
-            raise ValueError
-        else:
-            for i in range(n_targets):
-                my_dic_targets.append('f' + str(i))
+    if calculus_mode == 'only_scalars':
+        my_dic_scalar_numbers = ['A_scal']
+        my_dic_vec_numbers = []
+    elif calculus_mode== 'both':
+        my_dic_scalar_numbers = ['A_scal']
+        my_dic_vec_numbers = []
     else:
-        my_dic_targets = []
+        my_dic_scalar_numbers = []
+        my_dic_vec_numbers = ['A_vec']
 
-    # variables are x1, x2, ...
-    my_dic_variables = []
-    for i in range(n_variables):
-        my_dic_variables.append('x' + str(i))
+    # targets :
+    my_dic_other_targets = all_targets_name[:u] + all_targets_name[u+1:]
+    my_dic_actual_target = all_targets_name[u]
+    my_dic_target_vector = []
+    for i in range(n_targets//3):
+        my_dic_target_vector.append('F'+str(i)) # F0 = vec(f0,f1,f2), etc ; #assumes 3D dynamics
 
-    # partial derivatives w.r.t. x1, x2, ...
-    # see also game_env : d_i are only allowed acting directly on f_j, ie no stuff like partial_x (x^2+ cos(y) - f) : because could always be simplified and thus useless
-    # todo later : change to arity two avec seul x1, x2 etc allowed
-    if config.use_derivative:
-        my_dic_diff = []
-        ders = [['']]
-        if n_variables == 1:
-            maxder = 2
-        else:
-            maxder = 1
-        while len(ders) < maxder:
-            loc_der = []
-            pre_der = ders[-1]
-            for elem in pre_der:
-                for v in range(n_variables):
-                    loc_der.append('d' + elem + '_x' + str(v))
-            ders.append(loc_der)
+    # variable is only time here:
+    my_dic_variables = ['x0']
 
-        for u in range(n_targets):
-            for i in range(1, len(ders)):
-                for der in ders[i]:
-                    my_dic_diff.append(der + '_f' + str(u))
+    #derivatives #are considered as scalars here, not via a node operator (#later todo?)
+    if look_for == 'find_1st_order_diff_eq':
+        maxder = 1
+    elif look_for == 'find_2nd_order_diff_eq':
+        maxder=2
     else:
-        my_dic_diff = []
+        maxder = 0
+
+    my_dic_scalar_diff = []
+    my_dic_vector_diff = []
+    ders = [['']]
+    while len(ders) < maxder:
+        loc_der = []
+        pre_der = ders[-1]
+        for elem in pre_der:
+                loc_der.append('d' + elem + '_x0')
+        ders.append(loc_der)
+
+    for u in range(n_targets):
+        for i in range(1, len(ders)):
+            for der in ders[i]:
+                my_dic_scalar_diff.append(der + '_f' + str(u))
+
+    for u in range(len(my_dic_target_vector)):
+        for i in range(1, len(ders)):
+            for der in ders[i]:
+                my_dic_vector_diff.append(der + '_F' + str(u))
+
 
     # ============  arity 1 symbols =======================
-
     # basic functions
-    my_dic_functions = config.fonctions
-
+    my_dic_scalar_functions = config.fonctions
+    my_dic_vec_functions = ['norm(', 'normsquared(']
 
     # ============  arity 2 symbols =======================
-    my_dic_regular_op = config.operators
+    my_dic_scalar_operators = config.operators
     if config.usepower:
         my_dic_power = ['**']
     else:
         my_dic_power = []
+    my_dic_vec_operators = ['dot', 'wedge']
 
     # ============ special algebraic symbols =======================
     my_dic_true_zero = ['zero']
@@ -73,15 +75,10 @@ def get_dic(n_targets, n_variables, modescalar):
     #concatenate the dics
     numbers_to_formula_dict = {'1' : 'halt'}
 
-    if modescalar == 'A':
-        arity0dic = my_dic_any_scalars + my_dic_variables + my_dic_diff + my_dic_targets
-        pure_numbers = tuple([i for i in range(2, 2 + len(my_dic_any_scalars))])
-        var_numbers = tuple([i for i in range(2 + len(my_dic_any_scalars), 2 + len(my_dic_any_scalars) + len(my_dic_variables))])
+    arity0dic = my_dic_any_scalars + my_dic_variables + my_dic_diff + my_dic_targets
+    pure_numbers = tuple([i for i in range(2, 2 + len(my_dic_any_scalars))])
+    var_numbers = tuple([i for i in range(2 + len(my_dic_any_scalars), 2 + len(my_dic_any_scalars) + len(my_dic_variables))])
 
-    else:
-        arity0dic = my_dic_integer_scalars + my_dic_variables + my_dic_diff + my_dic_targets
-        pure_numbers = tuple([i for i in range(2, 2 + len(my_dic_integer_scalars))])
-        var_numbers = tuple([i for i in range(2 + len(my_dic_integer_scalars), 2 + len(my_dic_integer_scalars) + len(my_dic_variables))])
 
     #then :
     arity1dic = my_dic_functions
@@ -92,31 +89,11 @@ def get_dic(n_targets, n_variables, modescalar):
     a1 = len(arity1dic)
     a2 = len(arity2dic)
 
-    #later remove too bog grid sinon
-    if 'np.log(' in my_dic_functions:
-        log_number = 2 + a0 + [x for x in range(len(my_dic_functions)) if my_dic_functions[x]=='np.log('][0]
-    else:
-        log_number = None
-    if 'np.exp(' in my_dic_functions:
-        exp_number = 2 + a0 + [x for x in range(len(my_dic_functions)) if my_dic_functions[x]=='np.exp('][0]
-    else:
-        exp_number = None
-    explognumbers = (exp_number, log_number)
-    if 'np.sin(' in my_dic_functions:
-        sin_number = 2 + a0 + [x for x in range(len(my_dic_functions)) if my_dic_functions[x] == 'np.sin('][0]
-    else:
-        sin_number = None
-    if 'np.cos(' in my_dic_functions:
-        cos_number = 2 + a0 + [x for x in range(len(my_dic_functions)) if my_dic_functions[x] == 'np.cos('][0]
-    else:
-        cos_number = None
-    trignumbers = (sin_number, cos_number)
 
 
-    if modescalar == 'A':
-        arity0symbols_var_and_tar = tuple([i for i in range(2 + len(my_dic_any_scalars), 2 + a0)])
-    else:
-        arity0symbols_var_and_tar = tuple([i for i in range(2 + len(my_dic_integer_scalars), 2 + a0)])
+    arity0symbols_var_and_tar = tuple([i for i in range(2 + len(my_dic_any_scalars), 2 + a0)])
+
+
 
     arity0symbols = tuple([i for i in range(2, 2 + a0)])
     arity1symbols = tuple([i for i in range(2 + a0, 2 + a0 + a1)])

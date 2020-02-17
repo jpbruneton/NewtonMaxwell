@@ -69,23 +69,18 @@ class Target():
 
 
 class Voc():
-    def __init__(self, target, modescalar):
-
-        self.modescalar = modescalar
-        if config.fromfile:
-            self.target = target
-        else:
-            self.target = target
-        if self.modescalar == 'noA':
-            self.maximal_size = self.target[-2]
-        else:
-            self.maximal_size = self.target[-2]
-
+    def __init__(self, u, all_targets_name, calculus_mode, maximal_size, look_for):
+        self.calculus_mode = calculus_mode
+        self.maximal_size = maximal_size
+        self.all_targets_name = all_targets_name
+        self.n_targets = len(all_targets_name)
+        self.look_for = look_for
         self.numbers_to_formula_dict, self.arity0symbols, self.arity1symbols, self.arity2symbols, self.true_zero_number, self.neutral_element, \
         self.infinite_number, self.terminalsymbol, self.OUTPUTDIM, self.pure_numbers, self.arity2symbols_no_power, self.power_number, \
         self.arity0symbols_var_and_tar, self.var_numbers, self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.log_number, \
         self.exp_number, self.explognumbers, self.trignumbers, self.sin_number, self.cos_number \
-            = Build_dictionnaries.get_dic(1, self.target[1], modescalar)
+            = Build_dictionnaries.get_dic(self.n_targets, self.all_targets_name, u, self.calculus_mode, self.look_for)
+
         self.outputdim = len(self.numbers_to_formula_dict) - 3
 
         self.mysimplificationrules, self.maxrulesize = self.create_dic_of_simplifs()

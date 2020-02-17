@@ -1,21 +1,16 @@
 import run_one_target
 import config
 from Targets import Target, Voc
+import numpy as np
 
 # -----------------------------------------------#
-def init_everything(train_target, test_target):
+def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u):
     # init dictionnaries
-    voc_with_a = Voc(train_target, 'A')
-    voc_no_a = Voc(train_target, 'noA')
+    voc = Voc(u, all_targets_name, calculus_mode, maximal_size, look_for)
+    print('for target name', actual_train_target[0])
+    print('we work with voc: ', voc.numbers_to_formula_dict)
 
-    print('for target name', train_target[0])
-    print('we work with no A voc: ', voc_no_a.numbers_to_formula_dict)
-    print('and then with A voc: ', voc_with_a.numbers_to_formula_dict)
-    print('and with maximal size', voc_no_a.maximal_size)
-
-    # useful
-    diff = len(voc_no_a.numbers_to_formula_dict) - len(voc_with_a.numbers_to_formula_dict)
-    # metaparameters
+    # and metaparameters
     poolsize = config.qd_init_pool_size
     if config.MAX_DEPTH ==1:
         delete_ar1_ratio = 0.1
@@ -27,12 +22,12 @@ def init_everything(train_target, test_target):
     p_mutate = 0.4
     p_cross = 0.8
 
-    binl_no_a = voc_no_a.maximal_size # number of bins for length of an eq
-    maxl_no_a = voc_no_a.maximal_size
+    binl_no_a = maximal_size # number of bins for length of an eq
+    maxl_no_a = maximal_size
     bina = maxl_no_a  # number of bins for number of free scalars
     maxa = bina
-    binl_a = voc_with_a.maximal_size # number of bins for length of an eq
-    maxl_a = voc_with_a.maximal_size
+    binl_a = maximal_size # number of bins for length of an eq
+    maxl_a = maximal_size
     binf = 160 # number of bins for number of fonctions
     maxf = 160
     new = 0
@@ -62,32 +57,49 @@ def kill_print():
     sys.stdout = logger
     sys.stderr = logger
 
-def load_targets(filenames_train, filenames_test):
+# -----------------------------------------------#
+def load_targets(filenames_train, filenames_test, flatten):
     train = Target(filenames_train).targets
     test = Target(filenames_test).targets
 
-    # flatten all targets
-    train_targets = [train[0][0]]
-    test_targets = [test[0][0]]
+    alltraintargets = []
+    alltesttargets = []
+    count = 0
+    if flatten:
+        for u in range(len(train)):
+            for v in range(len(train[u][1])):
+                name = 'f'+str(count)
+                onetarget = [name, train[u][0], train[u][1][v],train[u][2][v],train[u][3][v]]
+                count+=1
+                alltraintargets.append(onetarget)
+        for u in range(len(test)):
+            for v in range(len(test[u][1])):
+                name = 'f'+str(count)
+                onetarget = [name, test[u][0], test[u][1][v], test[u][2][v], test[u][3][v]]
+                count+=1
+                alltesttargets.append(onetarget)
+        return alltraintargets, alltesttargets
+    else:
+        return train, test
 
-    funcs = []
-    fder = []
-    sder = []
-    for u in range(len(train)):
-        funcs.extend(train[u][1])
-        fder.extend(train[u][2])
-        sder.extend(train[u][3])
-    train_targets.extend([funcs, fder, sder])
+def init_targets(calculus_mode, calculus_modes):
+    # check if possible
+    error = False
+    for file in filenames_train:
+        dat = np.loadtxt(file, delimiter=',')
+        if dat.shape[1] != 4:
+            error = True
+    if error:
+        print('warning, vector mode can only be used if all targets are 3D; shifting to scalar mode only')
+        calculus_mode = calculus_modes[0]
 
-    funcs = []
-    fder = []
-    sder = []
-    for u in range(len(test)):
-        funcs.extend(test[u][1])
-        fder.extend(test[u][2])
-        sder.extend(test[u][3])
-    test_targets.extend([funcs, fder, sder])
-    return train_targets, test_targets
+    # we dont load the target the same in these two cases:
+    # if flatten == True, train of the form: [[name, variable array, one scalar target, its derivative, its second derivative] , n times]
+    # else, [[name, var array, vec target, vec derivatives], p times] ; with 3*p = n
+    flatten = True if calculus_mode == 'only_scalars' else False
+    train_targets, test_targets = load_targets(filenames_train, filenames_test, flatten)
+    all_targets_name = [train_targets[u][0] for u in range(len(train_targets))]
+    return  calculus_mode, all_targets_name, train_targets, test_targets
 
 # -----------------------------------------------#
 if __name__ == '__main__':
@@ -99,23 +111,18 @@ if __name__ == '__main__':
     filenames_train = ['data_loader/x1_train(t).csv','data_loader/x2_train(t).csv']
     filenames_test = ['data_loader/x1_test(t).csv','data_loader/x2_test(t).csv']
 
+    # -------------------------------- init targets
+    calculus_modes = ['only_scalars', 'allow_vectors']
+    calculus_mode = calculus_modes[1] #default is vectorial mode on
+    calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes)
 
-    train_targets, test_targets = load_targets(filenames_train, filenames_test)
-    # train et test de la forme [t #l'array de la variable, [les n targets], [les n der premieres], [les n der secondes]] avec un t commun
-
-
-    # on résout une par une a revoir
+    # solve :
     for u in range(len(train_targets)):
-        train_target = train_targets[u]
-        test_target = test_targets[u]
-        params = init_everything(train_target, test_target)
-
-        if train_target[1] == 1:#une seule variable t, genre x(t)
-            run_one_target.main(params, train_target, test_target, 'der_sec')
-
-        else: # j'ai un champ, je boucle pour chercher son der x dery, derz, dert
-            run_one_target.main(params, train_target, test_target, 'dx')
-            run_one_target.main(params, train_target, test_target, 'dy')
-            run_one_target.main(params, train_target, test_target, 'dz')
-            run_one_target.main(params, train_target, test_target, 'dt')
-
+        actual_train_target = train_targets[u]
+        actual_test_target = test_targets[u]
+        possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
+        look_for = possible_modes[2] #defaults is second order diff eq
+        maximal_size = 15
+        # main exec
+        params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u)
+        run_one_target.main(params, train_targets, test_targets, u, possible_modes[2], calculus_mode, maximal_size)
