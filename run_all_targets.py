@@ -110,7 +110,7 @@ def init_targets(calculus_mode, calculus_modes, planar_motion):
 # -----------------------------------------------#
 if __name__ == '__main__':
     # don't display any output
-    noprint = False
+    noprint = True
     if noprint:
         kill_print()
 

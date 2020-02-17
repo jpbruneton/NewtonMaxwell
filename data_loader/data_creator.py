@@ -14,7 +14,7 @@ def keplerian_motion(eccentricty, v):
     # exact motion requires solving a transcendental equation :
     def ff(x,t):
         return x - eccentricty*np.sin(x) - v *t
-    p=100
+    p=500
     t = np.linspace(0.6, 2, num=p)
     sols=[]
 
@@ -51,7 +51,7 @@ def keplerian_motion(eccentricty, v):
     plt.plot(diff)
     plt.show()
 
-#keplerian_motion(0.7,1)
+keplerian_motion(0.7,1)
 
 def easy_target():
     set_types = ['E', 'E']

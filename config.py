@@ -50,8 +50,8 @@ def get_size(iteration):
     size = 2*internal_nodes[index]+1
     return size
 
-qd_init_pool_size = 500
-extendpoolfactor = 1
+qd_init_pool_size = 2000
+extendpoolfactor = 1.5
 #which_target = 'fig1-waveform-H_phase2_1.txt'
 
 plot = False
