@@ -173,6 +173,13 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
     poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa,  binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
     binp, maxp,  derzero, derone, addrandom, voc = params
 
+    if config.plot:
+        formm1 = 'A*f0/((f0**2+f1**2)**(3/2))'
+
+        scalar_numbers, alla, rms = game_env.game_evaluate([1], formm1, voc, train_targets, 'train', u, look_for)
+        print('donne:', scalar_numbers, alla, rms)
+        time.sleep(1)
+
     prefix = str(int(10000000 * time.time()))
     gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
                extend_ratio, maxa, bina, maxl_no_a, binl_no_a, maxf, binf, maxp, binp, derzero, derone,

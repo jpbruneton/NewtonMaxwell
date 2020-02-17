@@ -14,24 +14,10 @@ iterationnoa = 100#2015
 termination_nmrse = 1e-6
 
 #_________________Taget related_______________#
-#madifftarget = 0 # on cherche la fonction
-#madifftarget = 1 # ou sa derivee premiere
-madifftarget = 'dx' # ou sa der sec
 
-monobj = 0 # il cherche une fonction qui vaut  la target
-#monobj = 1 # ou une fonction dont la dérivée vaut la target
-#monobj = 2 # ou dont la dersec vaut la target
-
-includetarget = True
-#le choix ci dessus est de la primitivation
-
-use_derivative = True
-max_derivative_1dim = 2
-max_derivative_ndim = 1
-# warning more than first derivatives only supported with 1D targets
 
 # how many nested functions I authorize
-MAX_DEPTH = 2
+MAX_DEPTH = 1
 # power is taken only to a real number : avoid stuff like exp(x)^(x exp(x)) !!
 only_scalar_in_power = True
 
@@ -47,8 +33,8 @@ else:
 
 
 # _______________ QD algo related ______________
-auto_extent_size = True
-add_random = False
+auto_extent_size = False
+add_random = True
 skip_no_a_part = False
 saveqd = False
 use_simplif = False
@@ -64,7 +50,7 @@ def get_size(iteration):
     size = 2*internal_nodes[index]+1
     return size
 
-qd_init_pool_size = 400
+qd_init_pool_size = 500
 extendpoolfactor = 1
 #which_target = 'fig1-waveform-H_phase2_1.txt'
 

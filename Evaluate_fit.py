@@ -105,26 +105,7 @@ class Evaluatefit:
             if type(mafonction) != np.ndarray or np.isnan(np.sum(mafonction)) or np.isinf(np.sum(mafonction)) :
                 return False, None
             else:
-                monx = x[0]
-                if config.monobj ==0:
-                    toreturn = mafonction
-                if config.monobj ==1 :
-                    tck = interpolate.splrep(monx, mafonction, s=0)
-                    mader = interpolate.splev(monx, tck, der=1)
-                    toreturn = mader
-                    if self.formulas == 'np.sin((x[0][:]))' and False:
-                        plt.plot(mafonction, 'r')
-                        plt.plot(mader, 'b')
-                        #tets = np.sin(monx)
-                        #plt.plot(tets, 'g')
-                        #tt = np.cos(monx)
-                        #plt.plot(tt)
-                        plt.show()
-
-                else:
-                    tck = interpolate.splrep(monx, mafonction, s=0)
-                    mader = interpolate.splev(monx, tck, der=1)
-                    madersec = interpolate.splev(monx, tck, der=2)
+                toreturn = mafonction
                 return True, toreturn
 
         except (RuntimeWarning, RuntimeError, ValueError, ZeroDivisionError, OverflowError, SystemError, AttributeError):
@@ -196,7 +177,6 @@ class Evaluatefit:
         np.seterr(all = 'ignore')
         allA = []
         self.rename_formulas()
-
         if self.scalar_numbers == 0:
             rms = self.eval_reward_nrmse(allA)
             if rms > 100000000:

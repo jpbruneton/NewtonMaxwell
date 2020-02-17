@@ -54,22 +54,22 @@ def kill_print():
     sys.stderr = logger
 
 # -----------------------------------------------#
-def load_targets(filenames_train, filenames_test, flatten):
+def load_targets(filenames_train, filenames_test, flatten, planar_motion):
     train = Target(filenames_train).targets
     test = Target(filenames_test).targets
     alltraintargets = []
     alltesttargets = []
     count = 0
-
+    eps = 1 if planar_motion else 0
     if flatten:
         for u in range(len(train)):
-            for v in range(len(train[u][1])):
+            for v in range(len(train[u][1])-eps):
                 name = 'f'+str(count)
                 onetarget = [name, train[u][0], train[u][1][v],train[u][2][v],train[u][3][v]]
                 count+=1
                 alltraintargets.append(onetarget)
         for u in range(len(test)):
-            for v in range(len(test[u][1])):
+            for v in range(len(test[u][1])-eps):
                 name = 'f'+str(count)
                 onetarget = [name, test[u][0], test[u][1][v], test[u][2][v], test[u][3][v]]
                 count+=1
@@ -87,7 +87,7 @@ def load_targets(filenames_train, filenames_test, flatten):
         return alltraintargets, alltesttargets
 
 # ----------------------------------------------
-def init_targets(calculus_mode, calculus_modes):
+def init_targets(calculus_mode, calculus_modes, planar_motion):
     # check if possible
     error = False
     for file in filenames_train:
@@ -102,7 +102,7 @@ def init_targets(calculus_mode, calculus_modes):
     # if flatten == True, train of the form: [[name, variable array, one scalar target, its derivative, its second derivative] , n times]
     # else, [[name, var array, vec target, vec derivatives], p times] ; with 3*p = n
     flatten = True if calculus_mode == 'scalar' else False
-    train_targets, test_targets = load_targets(filenames_train, filenames_test, flatten)
+    train_targets, test_targets = load_targets(filenames_train, filenames_test, flatten, planar_motion)
 
     all_targets_name = [train_targets[u][0] for u in range(len(train_targets))]
     return  calculus_mode, all_targets_name, train_targets, test_targets
@@ -114,13 +114,17 @@ if __name__ == '__main__':
     if noprint:
         kill_print()
 
-    filenames_train = ['data_loader/kepler_1.csv']#x1_train(t).csv']#,'data_loader/x2_train(t).csv']
+    filenames_train = ['data_loader/kepler_1.csv']#,'data_loader/x2_train(t).csv']
     filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
-
+    planar_motion = True
     # -------------------------------- init targets
     calculus_modes = ['scalar', 'vectorial']
     calculus_mode = calculus_modes[0] #default is vectorial mode on
-    calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes)
+    calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes, planar_motion)
+
+    #allow expert knowledge :
+    explicit_time_dependence = False
+
 
     # solve :
     for u in range(len(train_targets)):
@@ -128,7 +132,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 18
+        maximal_size = 24
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u)
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)
