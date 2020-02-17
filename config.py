@@ -1,6 +1,6 @@
 # _________ define voc ____________
 all_fonctions = ['np.cos(', 'np.tan(', 'np.exp(', 'np.log(', 'np.sqrt(', 'np.sinh(', 'np.cosh(', 'np.tanh(', 'np.arcsin(', 'np.arctan(']
-small_set = ['np.sin(', 'np.sqrt(', 'np.exp(', 'np.log(','np.arcsin(', 'np.arctan(']
+small_set = ['np.sin(', 'np.sqrt(', 'np.exp(', 'np.log(']#,'np.arcsin(', 'np.arctan(']
 
 fonctions = small_set #make your choice here
 #list_scalars = ['minuso_ne', 'minust_wo', 'minust_hree', 'minusf_our', 'minusf_ive', 'one', 'two', 'three', 'four', 'five']

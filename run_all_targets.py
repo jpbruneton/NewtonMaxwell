@@ -114,8 +114,8 @@ if __name__ == '__main__':
     if noprint:
         kill_print()
 
-    filenames_train = ['data_loader/x1_train(t).csv','data_loader/x2_train(t).csv']
-    filenames_test = ['data_loader/x1_test(t).csv','data_loader/x2_test(t).csv']
+    filenames_train = ['data_loader/kepler_1.csv']#x1_train(t).csv']#,'data_loader/x2_train(t).csv']
+    filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
 
     # -------------------------------- init targets
     calculus_modes = ['scalar', 'vectorial']
@@ -128,7 +128,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 10
+        maximal_size = 18
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u)
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)
