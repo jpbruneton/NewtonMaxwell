@@ -1,14 +1,12 @@
 # _________ define voc ____________
 all_fonctions = ['np.cos(', 'np.tan(', 'np.exp(', 'np.log(', 'np.sqrt(', 'np.sinh(', 'np.cosh(', 'np.tanh(', 'np.arcsin(', 'np.arctan(']
-########### l oubli de la parenthèse ferait des syntaxerror, EOF parsing error ##############
-small_fonctions = ['np.sin(', 'np.cos(', 'np.sqrt(']
+small_set = ['np.sin(', 'np.sqrt(', 'np.exp(', 'np.log(','np.arcsin(', 'np.arctan(']
 
-fonctions = all_fonctions #make your choice here
+fonctions = small_set #make your choice here
 #list_scalars = ['minuso_ne', 'minust_wo', 'minust_hree', 'minusf_our', 'minusf_ive', 'one', 'two', 'three', 'four', 'five']
 list_scalars = ['one', 'two']
 
 operators = ['+', '-', '*', '/']
-usepower = True
 
 #____________termination stuff_______________
 iterationa = 100

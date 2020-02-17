@@ -33,15 +33,11 @@ def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mo
     new = 0
     binp = new  # number of bins for number of powers
     maxp = new
-    bintrig = new # number of bins for number of trigonometric functions (sine and cos)
-    maxtrig = new
-    binexp = new # number of bins for number of exp-functions (exp or log)
-    maxexp = new
     derzero, derone = 1 , 1 #absence ou presence de fo et ou de fo'
     addrandom = config.add_random
 
     params = [poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
-           binp, maxp, bintrig, derzero, derone, maxtrig, binexp, maxexp, addrandom, voc_with_a, voc_no_a, diff]
+           binp, maxp, derzero, derone, addrandom, voc]
     return params
 
 # -----------------------------------------------#
@@ -61,10 +57,10 @@ def kill_print():
 def load_targets(filenames_train, filenames_test, flatten):
     train = Target(filenames_train).targets
     test = Target(filenames_test).targets
-
     alltraintargets = []
     alltesttargets = []
     count = 0
+
     if flatten:
         for u in range(len(train)):
             for v in range(len(train[u][1])):
@@ -79,9 +75,18 @@ def load_targets(filenames_train, filenames_test, flatten):
                 count+=1
                 alltesttargets.append(onetarget)
         return alltraintargets, alltesttargets
-    else:
-        return train, test
 
+    else:
+        for u in range(len(train)):
+            name = 'F'+str(u)
+            onetarget =  [name, train[u][0], train[u][1],train[u][2],train[u][3]]
+            alltraintargets.append(onetarget)
+            onetarget = [name, test[u][0], test[u][1], test[u][2], test[u][3]]
+            alltesttargets.append(onetarget)
+
+        return alltraintargets, alltesttargets
+
+# ----------------------------------------------
 def init_targets(calculus_mode, calculus_modes):
     # check if possible
     error = False
@@ -90,14 +95,15 @@ def init_targets(calculus_mode, calculus_modes):
         if dat.shape[1] != 4:
             error = True
     if error:
-        print('warning, vector mode can only be used if all targets are 3D; shifting to scalar mode only')
+        print('warning: vector mode can only be used if *all* targets are 3D; now resuming with scalar mode only')
         calculus_mode = calculus_modes[0]
 
     # we dont load the target the same in these two cases:
     # if flatten == True, train of the form: [[name, variable array, one scalar target, its derivative, its second derivative] , n times]
     # else, [[name, var array, vec target, vec derivatives], p times] ; with 3*p = n
-    flatten = True if calculus_mode == 'only_scalars' else False
+    flatten = True if calculus_mode == 'scalar' else False
     train_targets, test_targets = load_targets(filenames_train, filenames_test, flatten)
+
     all_targets_name = [train_targets[u][0] for u in range(len(train_targets))]
     return  calculus_mode, all_targets_name, train_targets, test_targets
 
@@ -112,8 +118,8 @@ if __name__ == '__main__':
     filenames_test = ['data_loader/x1_test(t).csv','data_loader/x2_test(t).csv']
 
     # -------------------------------- init targets
-    calculus_modes = ['only_scalars', 'allow_vectors']
-    calculus_mode = calculus_modes[1] #default is vectorial mode on
+    calculus_modes = ['scalar', 'vectorial']
+    calculus_mode = calculus_modes[0] #default is vectorial mode on
     calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes)
 
     # solve :
@@ -122,7 +128,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 15
+        maximal_size = 24
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u)
-        run_one_target.main(params, train_targets, test_targets, u, possible_modes[2], calculus_mode, maximal_size)
+        run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

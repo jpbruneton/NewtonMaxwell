@@ -3,22 +3,16 @@ import config
 def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
 
     # ============  arity 0 symbols =======================
-    if calculus_mode == 'only_scalars':
-        my_dic_scalar_numbers = ['A_scal']
-        my_dic_vec_numbers = []
-    elif calculus_mode== 'both':
-        my_dic_scalar_numbers = ['A_scal']
-        my_dic_vec_numbers = []
+    if calculus_mode == 'scalar':
+        my_dic_scalar_number = ['A_scal']
+        my_dic_vec_number = []
     else:
-        my_dic_scalar_numbers = []
-        my_dic_vec_numbers = ['A_vec']
+        my_dic_scalar_number = ['A_scal'] #we need both e.g. F = q v^B in Lorentz force : q is a one_scalar
+        my_dic_vec_number = ['A_vec']
 
     # targets :
     my_dic_other_targets = all_targets_name[:u] + all_targets_name[u+1:]
-    my_dic_actual_target = all_targets_name[u]
-    my_dic_target_vector = []
-    for i in range(n_targets//3):
-        my_dic_target_vector.append('F'+str(i)) # F0 = vec(f0,f1,f2), etc ; #assumes 3D dynamics
+    my_dic_actual_target = [all_targets_name[u]]
 
     # variable is only time here:
     my_dic_variables = ['x0']
@@ -31,8 +25,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
     else:
         maxder = 0
 
-    my_dic_scalar_diff = []
-    my_dic_vector_diff = []
+    my_dic_diff = []
     ders = [['']]
     while len(ders) < maxder:
         loc_der = []
@@ -44,26 +37,29 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
     for u in range(n_targets):
         for i in range(1, len(ders)):
             for der in ders[i]:
-                my_dic_scalar_diff.append(der + '_f' + str(u))
-
-    for u in range(len(my_dic_target_vector)):
-        for i in range(1, len(ders)):
-            for der in ders[i]:
-                my_dic_vector_diff.append(der + '_F' + str(u))
-
+                if calculus_mode == 'scalar':
+                    my_dic_diff.append(der + '_f' + str(u))
+                else:
+                    my_dic_diff.append(der + '_F' + str(u))
 
     # ============  arity 1 symbols =======================
     # basic functions
     my_dic_scalar_functions = config.fonctions
-    my_dic_vec_functions = ['norm(', 'normsquared(']
+    # not clear if I allow point wise operations of cos( vec(x)) as hadamard like structure or use only on true scalars?
+    # decide later : for now default is cos can only apply on a true scalar like :  A_vec (scalarproduct) F_2
+    if calculus_mode == 'vectorial':
+        my_dic_vectorial_functions = ['norm('] # forms from E -> R
+    else:
+        my_dic_vectorial_functions = []
 
     # ============  arity 2 symbols =======================
     my_dic_scalar_operators = config.operators
-    if config.usepower:
-        my_dic_power = ['**']
+    my_dic_power = ['**']
+
+    if calculus_mode == 'vectorial':
+        my_dic_vec_operators = ['dot', 'wedge'] #operators from E*E -> R
     else:
-        my_dic_power = []
-    my_dic_vec_operators = ['dot', 'wedge']
+        my_dic_vec_operators = []
 
     # ============ special algebraic symbols =======================
     my_dic_true_zero = ['zero']
@@ -75,63 +71,54 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
     #concatenate the dics
     numbers_to_formula_dict = {'1' : 'halt'}
 
-    arity0dic = my_dic_any_scalars + my_dic_variables + my_dic_diff + my_dic_targets
-    pure_numbers = tuple([i for i in range(2, 2 + len(my_dic_any_scalars))])
-    var_numbers = tuple([i for i in range(2 + len(my_dic_any_scalars), 2 + len(my_dic_any_scalars) + len(my_dic_variables))])
+    #arity 0:
+    arity0dic = my_dic_scalar_number + my_dic_vec_number + my_dic_variables + my_dic_actual_target\
+                + my_dic_other_targets + my_dic_diff
+    index0 = 2
+    index1 = index0 + len(my_dic_scalar_number) + len(my_dic_vec_number)
+    index2 = index1 + len(my_dic_variables)
 
+    pure_numbers = tuple([i for i in range(index0, index1)])
+    var_numbers = tuple([i for i in range(index1, index2)])
 
-    #then :
-    arity1dic = my_dic_functions
-    #in both cases:
-    arity2dic = my_dic_regular_op + my_dic_power
+    #arity 1 and 2 :
+    arity1dic = my_dic_scalar_functions + my_dic_vectorial_functions
+    arity2dic = my_dic_scalar_operators + my_dic_vec_operators + my_dic_power
 
-    a0 = len(arity0dic)
-    a1 = len(arity1dic)
-    a2 = len(arity2dic)
-
-
-
-    arity0symbols_var_and_tar = tuple([i for i in range(2 + len(my_dic_any_scalars), 2 + a0)])
-
-
+    a0, a1, a2  = len(arity0dic), len(arity1dic), len(arity2dic)
 
     arity0symbols = tuple([i for i in range(2, 2 + a0)])
     arity1symbols = tuple([i for i in range(2 + a0, 2 + a0 + a1)])
-
     arity2symbols = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2)])
-    if config.usepower:
-        arity2symbols_no_power = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2 -1)])
-    else:
-        arity2symbols_no_power = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2)])
+    arity2symbols_no_power = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2 -1)])
 
+    norm_number = 2+a0+a1-1
     #dont change order of operations!
     plusnumber = 2 + a0 + a1
     minusnumber = 3 + a0 + a1
     multnumber = 4 + a0 + a1
     divnumber = 5 + a0 + a1
-
-    #or the order of special dic
-    if config.usepower:
-        power_number = 1 + a0 + a1 + a2
+    if calculus_mode == 'vectorial':
+        dotnumber = 6+a0+a1
+        wedgenumber = 7+a0+a1
     else:
-        power_number = None
+        dotnumber = None
+        wedgenumber = None
 
+    #dont change the previous order or change this accordingly
+    power_number = 1 + a0 + a1 + a2
     true_zero_number = 2 + a0 + a1 + a2
     neutral_element = 3 + a0 + a1 + a2
     infinite_number = 4 + a0 + a1 + a2
 
     # finally
     all_my_dics = arity0dic + arity1dic + arity2dic + special_dic
-    # and
     for i in range(len(all_my_dics)):
         numbers_to_formula_dict.update({str(i+2): all_my_dics[i]})
 
     terminalsymbol = 1
 
-    #for Neural Net
-    OUTPUTDIM = len(numbers_to_formula_dict)
 
-    #check everything's fine
     if False:
         print(modescalar)
         print(arity0symbols)
@@ -155,7 +142,6 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
         print('========================')
 
     return numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
-           infinite_number, terminalsymbol, OUTPUTDIM, pure_numbers, arity2symbols_no_power, power_number,  \
-           arity0symbols_var_and_tar, var_numbers, plusnumber, minusnumber, multnumber, divnumber, log_number, exp_number, \
-           explognumbers, trignumbers, sin_number, cos_number
+           infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
+           plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber
 

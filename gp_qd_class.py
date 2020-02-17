@@ -16,10 +16,11 @@ from multiprocessing import Pool
 # ---------------------------------------------------------------------------- #
 class GP_QD():
 
-    # ---------------------------------------------------------------------------- #
     def __init__(self, delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
-                  extend_ratio, maxa, bina, maxl, binl, maxf, binf, maxp, binp, maxtrig, bintrig, derzero, derone, maxexp, binexp, addrandom, qdpool, pool = None):
+                  extend_ratio, maxa, bina, maxl, binl, maxf, binf, maxp, binp, derzero, derone, addrandom,
+                  calculculus_mode, maximal_size, qdpool, pool = None):
 
+        self.calculus_mode = calculculus_mode
         self.usesimplif = config.use_simplif
         self.p_mutate = p_mutate
         self.delete_ar1_ratio = delete_ar1_ratio
@@ -28,7 +29,7 @@ class GP_QD():
         self.pool = pool
         self.QD_pool = qdpool
         self.pool_to_eval = []
-        self.maximal_size = voc.maximal_size
+        self.maximal_size = maximal_size
         self.extend = extend_ratio
         self.addrandom = addrandom
         self.voc = voc
@@ -40,76 +41,40 @@ class GP_QD():
         self.binf = binf
         self.maxp = maxp
         self.binp = binp
-        self.maxtrig = maxtrig
-        self.bintrig = bintrig
         self.derzero = derzero
         self.derone = derone
         self.maxder = 1
-        self.maxexp = maxexp
-        self.binexp = binexp
         self.smallstates =[]
 
+    # ----------------------
     def par_crea(self, task):
         np.random.seed(task)
-        newgame = game_env.randomeqs(self.voc, self.locally_maximal_size)
+        newgame = game_env.randomeqs(self.voc)
         return newgame.state
 
-    def para_complet(self, task):
-        st = time.time()
-        #np.random.seed(task)
-        #index = np.random.randint(0, len(self.smallstates))
-        #print(index)
-
-        #print('before', self.smallstates[index].formulas)
-        #newstate = game_env.complete_eq_with_random(self.voc, self.smallstates[task])
-        #print(time.time() -st)
-        #print('after', newstate.formulas)
-
-        #return newstate
-        return 1
     # ---------------------------------------------------------------------------- #
     #creates or extend self.pool
     def extend_pool(self, iteration = None):
-        # init : create random eqs
-        if config.auto_extent_size:
-            self.locally_maximal_size = config.get_size(iteration)
-            print('on traavaille en taille', self.locally_maximal_size, iteration)
-        else:
-            self.locally_maximal_size = self.maximal_size
 
         if self.pool == None and self.QD_pool is None:
-            multi = True
-            if multi:
-                self.pool = []
-                tasks = range(0, self.poolsize)
-                # print(tasks)
-                mp_pool = mp.Pool(config.cpus)
-                asyncResult = mp_pool.map_async(self.par_crea, tasks)
-                results = asyncResult.get()
-                mp_pool.close()
-                mp_pool.join()
-                for state in results:
-                    if self.voc.infinite_number not in state.reversepolish:
-                        self.pool.append(state)
-                del mp_pool
-
-            else:
-                self.pool = []
-
-                while len(self.pool) < self.poolsize:
-                    newgame = game_env.randomeqs(self.voc)
-                    newrdeq = newgame.state
-
-                    if self.voc.infinite_number not in newrdeq.reversepolish:
-                        self.pool.append(newrdeq)
-
+            self.pool = []
+            tasks = range(0, self.poolsize)
+            # print(tasks)
+            mp_pool = mp.Pool(config.cpus)
+            asyncResult = mp_pool.map_async(self.par_crea, tasks)
+            results = asyncResult.get()
+            mp_pool.close()
+            mp_pool.join()
+            for state in results:
+                if self.voc.infinite_number not in state.reversepolish:
+                    self.pool.append(state)
+            del mp_pool
             return self.pool
 
 
         else:
 
-            gp_motor = generate_offsprings(self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.locally_maximal_size, self.voc, self.locally_maximal_size)
-
+            gp_motor = generate_offsprings(self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.maximal_size, self.voc)
             all_states = []
             small_states=[]
             for bin_id in self.QD_pool:
@@ -121,39 +86,19 @@ class GP_QD():
             print('euh1', len(all_states))
 
             # +add new rd eqs for diversity. We add half the qd_pool size of random eqs
-            if self.addrandom or self.locally_maximal_size < 10:
+            if self.addrandom or self.maximal_size < 10:
                 toadd = int(len(self.QD_pool)/2)
                 c=0
                 ntries = 0
-                trypara = False
-                if trypara:
-                    st = time.time()
-                    tasks = range(0, toadd)
-                    print('ici', toadd)
-                    st= time.time()
-                    mp_pool = mp.Pool(config.cpus)
-                    print('y', st - time.time())
-                    asyncResult = mp_pool.map_async(self.para_complet, tasks)
-                    print('yy', st - time.time())
 
-                    results = asyncResult.get(timeout=1)
-                    print('yyy' , st - time.time())
+                st = time.time()
 
-                    mp_pool.close()
-                    mp_pool.join()
-                    for res in results:
-                        if self.voc.infinite_number not in res.reversepolish:
-                            all_states.append(res)
-
-                else:
-                    st = time.time()
-
-                    while c < toadd and ntries < 2000:
-                        newgame = game_env.randomeqs(self.voc, self.locally_maximal_size)
-                        if self.voc.infinite_number not in newgame.state.reversepolish:
-                            all_states.append(newgame.state)
-                            c += 1
-                        ntries += 1
+                while c < toadd and ntries < 2000:
+                    newgame = game_env.randomeqs(self.voc)
+                    if self.voc.infinite_number not in newgame.state.reversepolish:
+                        all_states.append(newgame.state)
+                        c += 1
+                    ntries += 1
                 print('toi complet', time.time() -st)
 
             print('euh2', len(all_states))
@@ -298,31 +243,12 @@ class GP_QD():
                     if powernumber >= bins_for_p[i] and powernumber < bins_for_p[i + 1]:
                         bin_p = i
 
-            if trignumber >= self.maxtrig:
-                bin_trig = self.maxtrig
-            else:
-                bins_for_trig = np.linspace(0, self.maxtrig, num=self.maxtrig + 1)
-                for i in range(len(bins_for_trig) - 1):
-                    if trignumber >= bins_for_trig[i] and trignumber < bins_for_trig[i + 1]:
-                        bin_trig = i
-
-            if explognumber >= self.maxexp:
-                bin_exp = self.maxexp
-            else:
-                bins_for_exp = np.linspace(0, self.maxexp, num=self.maxexp + 1)
-                for i in range(len(bins_for_exp) - 1):
-                    if explognumber >= bins_for_exp[i] and explognumber < bins_for_exp[i + 1]:
-                        bin_exp = i
-            #print('entry', reward, state, allA, Anumber, L, function_number, powernumber, trignumber, explognumber)
-
-            #print(state.reversepolish, state.formulas)
-            #print('bins are', [bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])
 
             ct+=1
-            if str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f, bin_fzero, bin_fone, bin_d]) not in results_by_bin:
+            if str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d]) not in results_by_bin:
                 cif+=1
                 if rms <2:
-                    results_by_bin.update({str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f, bin_fzero, bin_fone, bin_d]): [rms, state, allA]})
+                    results_by_bin.update({str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d]): [rms, state, allA]})
                     #print('new elem', state.formulas)
                     #print([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f, bin_fzero, bin_fone, bin_d])
                     #print('depth is', depth)
@@ -332,11 +258,11 @@ class GP_QD():
                 #print('happening', [bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])
                 #time.sleep(.2)
                 #print(state.formulas)
-                prev_rms = results_by_bin[str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f, bin_fzero, bin_fone, bin_d])][0]
+                prev_rms = results_by_bin[str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d])][0]
                 #print('prev', results_by_bin[str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])])
                 #print('prev', results_by_bin[str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])][1].formulas)
                 if rms < prev_rms:
-                    results_by_bin.update({str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f, bin_fzero, bin_fone, bin_d]): [rms, state, allA]})
+                    results_by_bin.update({str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d]): [rms, state, allA]})
         #print(results_by_bin)
         #print('me', len(results_by_bin))
         print(ct, cif, cnotif)

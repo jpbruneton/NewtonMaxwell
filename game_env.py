@@ -24,14 +24,10 @@ class Game:
 
     # ---------------------------------------------------------------------------- #
     # init a game with optional state.
-
-    def __init__(self, voc, state = None, local_max_size = None):
-
+    def __init__(self, voc, state = None):
         self.voc = voc
-        if config.auto_extent_size:
-            self.maxL = local_max_size
-        else:
-            self.maxL = voc.maximal_size
+        self.calculus_mode = voc.calculus_mode
+        self.maxL = voc.maximal_size
         if state is None:
             self.stateinit = []
             self.state = State(voc, self.stateinit)
@@ -40,24 +36,42 @@ class Game:
 
     # ---------------------------------------------------------------------------- #
     def scalar_counter(self):
-        #says if the current equation is a scalar or not (if counter == 1)
-        #later : add arity 3 symbol in case they exist (like integrals)
+        #says if the current equation is a number (or a vector of numbers!) or not (if counter == 1)
         counter = 0
-
         for char in self.state.reversepolish:
             #infinity doesnt count as a scalr since we discard such equations from the start; see elsewhere
             if char in self.voc.arity0symbols or char == self.voc.neutral_element or char == self.voc.true_zero_number:
                 counter += 1
-
             elif char in self.voc.arity2symbols:
                 counter -= 1
-
         return counter
 
-    # ---------------------------------------------------------------------------- #
-    def allowedmoves(self):
-        #assuming no arity-3 operators for the moment
+    def allowedmoves_vectorial(self):
+        current_state_size = len(self.state.reversepolish)
+        space_left = self.maxL - current_state_size
 
+        current_A_number = sum([1 for x in self.state.reversepolish if x in self.voc.pure_numbers[0]])
+        current_A_number += sum([3 for x in self.state.reversepolish if x in self.voc.pure_numbers[1]])
+
+        # init : we go upward so we must start with a scalar
+        if current_state_size == 0:
+            allowedchars = self.voc.arity0symbols
+
+        else:
+            # check if already terminated
+            if self.state.reversepolish[-1] == self.voc.terminalsymbol or space_left == 0:
+                allowedchars = []
+
+            else:
+                scalarcount = self.scalar_counter()
+                current_A_number = sum([1 for x in self.state.reversepolish if x in self.voc.pure_numbers[0]])
+
+                # check if we must terminate #todo ici final expression must be a vector
+                if space_left == 1:
+                    todo = 'todo'
+
+    # ---------------------------------------------------------------------------- #
+    def allowedmoves_novectors(self):
         current_state_size = len(self.state.reversepolish)
         space_left = self.maxL - current_state_size
 
@@ -74,7 +88,7 @@ class Game:
                 scalarcount = self.scalar_counter()
                 current_A_number =  sum([1 for x in self.state.reversepolish if x in self.voc.pure_numbers])
 
-                # we must terminate
+                # check if we must terminate
                 if space_left == 1:
                     if scalarcount == 1 : #expression is a scalar -> ok, terminate
                         allowedchars = [self.voc.terminalsymbol]
@@ -96,13 +110,10 @@ class Game:
                         allowedchars = [self.voc.terminalsymbol]
 
                         if space_left >= scalarcount + 1:
-                            if self.voc.modescalar == 'noA' :
+                            if current_A_number < config.max_A_number:
                                 allowedchars += self.voc.arity0symbols
                             else:
-                                if current_A_number < config.max_A_number:
-                                    allowedchars += self.voc.arity0symbols
-                                else:
-                                    allowedchars += self.voc.arity0symbols_var_and_tar
+                                allowedchars += self.voc.arity0symbols_var_and_tar
 
                         if space_left >= scalarcount:
 
@@ -122,17 +133,13 @@ class Game:
                             allowedchars = self.voc.arity2symbols
 
                         if space_left >= scalarcount+1:
-                            if self.voc.modescalar == 'noA' :
+                            if current_A_number < config.max_A_number:
                                 allowedchars += self.voc.arity0symbols
                             else:
-                                if current_A_number < config.max_A_number:
-                                    allowedchars += self.voc.arity0symbols
-                                else:
-                                    allowedchars += self.voc.arity0symbols_var_and_tar
+                                allowedchars += self.voc.arity0symbols_var_and_tar
 
                         #same here
                         if space_left >= scalarcount:
-
                             # also avoid stuff like exp(f)
                             if self.getnumberoffunctions() < config.MAX_DEPTH :
                                 allowedchars += self.voc.arity1symbols
@@ -176,11 +183,16 @@ class Game:
 
     # ---------------------------------------------------------------------------- #
     def isterminal(self):
-        if self.allowedmoves() == []:
-            return 1
-        else:
-            return 0
-
+        if self.calculus_mode == 'scalar':
+            if self.allowedmoves_novectors() == []:
+                return 1
+            else:
+                return 0
+        if self.calculus_mode == 'vectorial':
+            if self.allowedmoves_vectorial() == []:
+                return 1
+            else:
+                return 0
 # ---------------------------------------------------------------------------- #
     def convert_to_ast(self):
 
@@ -256,17 +268,20 @@ class Game:
 
 # ---------------------------------------------------------------------------- #
 # create random eqs + simplify it with my rules
-def randomeqs(voc, maxsize):
-    game = Game(voc, state=None, local_max_size= maxsize)
+def randomeqs(voc):
+    game = Game(voc, state=None)
     np.random.seed()
     while game.isterminal() == 0:
-        nextchar = np.random.choice(game.allowedmoves())
-        game.takestep(nextchar)
-        #print(game.state.reversepolish, game.state.formulas)
+        if voc.calculus_mode == 'scalar':
+            nextchar = np.random.choice(game.allowedmoves_novectors())
+            game.takestep(nextchar)
+        else:
+            nextchar = np.random.choice(game.allowedmoves_vectorial())
+            game.takestep(nextchar)
 
     if config.use_simplif:
         simplestate = simplif_eq(voc, game.state)
-        simplegame = Game(voc, simplestate, local_max_size= maxsize)
+        simplegame = Game(voc, simplestate)
         return simplegame
     #print('then', game.state.reversepolish, game.state.formulas)
 
@@ -294,19 +309,18 @@ def simplif_eq(voc, state):
 # ---------------------------------------------------------------------------- #
 # takes a non maximal size and completes it with random + simplify it with my rules
 def complete_eq_with_random(voc, state):
-
     if state.reversepolish[-1] == voc.terminalsymbol:
         newstate = State(voc, state.reversepolish[:-1])
-
     else :
         newstate = copy.deepcopy(state)
-
     game = Game(voc, newstate)
-
     while game.isterminal() == 0:
-        nextchar = np.random.choice(game.allowedmoves())
-        game.takestep(nextchar)
-
+        if voc.calculus_mode == 'scalar':
+            nextchar = np.random.choice(game.allowedmoves_novectors())
+            game.takestep(nextchar)
+        else:
+            nextchar = np.random.choice(game.allowedmoves_vectorial())
+            game.takestep(nextchar)
     if config.use_simplif:
         simplestate = simplif_eq(voc, game.state)
         return simplestate
@@ -314,9 +328,9 @@ def complete_eq_with_random(voc, state):
         return game.state
 
 # -------------------------------------------------------------------------- #
-def game_evaluate(rpn, formulas, voc, target, mode, formal_target):
+def game_evaluate(rpn, formulas, voc, train_targets, mode, u, look_for):
         if voc.infinite_number in rpn:
             return 0, [], 100000000
         else:
-            myfit = Evaluatefit(formulas, voc, target, mode, formal_target)
+            myfit = Evaluatefit(formulas, voc, train_targets, mode, u, look_for)
         return myfit.evaluate()

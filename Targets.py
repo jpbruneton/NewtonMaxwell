@@ -76,14 +76,13 @@ class Voc():
         self.n_targets = len(all_targets_name)
         self.look_for = look_for
         self.numbers_to_formula_dict, self.arity0symbols, self.arity1symbols, self.arity2symbols, self.true_zero_number, self.neutral_element, \
-        self.infinite_number, self.terminalsymbol, self.OUTPUTDIM, self.pure_numbers, self.arity2symbols_no_power, self.power_number, \
-        self.arity0symbols_var_and_tar, self.var_numbers, self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.log_number, \
-        self.exp_number, self.explognumbers, self.trignumbers, self.sin_number, self.cos_number \
+        self.infinite_number, self.terminalsymbol, self.pure_numbers, self.arity2symbols_no_power, self.power_number, self.var_numbers, \
+        self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.norm_number, self.dot_number, self.wedge_number \
             = Build_dictionnaries.get_dic(self.n_targets, self.all_targets_name, u, self.calculus_mode, self.look_for)
 
-        self.outputdim = len(self.numbers_to_formula_dict) - 3
 
-        self.mysimplificationrules, self.maxrulesize = self.create_dic_of_simplifs()
+        #todo redo later
+        #self.mysimplificationrules, self.maxrulesize = self.create_dic_of_simplifs()
 
     def replacemotor(self, toreplace,replaceby, k):
         firstlist = []
@@ -115,14 +114,6 @@ class Voc():
                 firstlist.append(self.arity2symbols[k])
             elif elem == 'power':
                 firstlist.append(self.power_number)
-            elif elem == 'log':
-                firstlist.append(self.log_number)
-            elif elem == 'exp':
-                firstlist.append(self.exp_number)
-            elif elem == 'sin':
-                firstlist.append(self.sin_number)
-            elif elem == 'cos':
-                firstlist.append(self.cos_number)
             elif elem == 'one':
                 firstlist.append(self.pure_numbers[0])
             elif elem == 'two':
@@ -159,14 +150,6 @@ class Voc():
                 secondlist=[]
             elif elem == 'power':
                 secondlist.append(self.power_number)
-            elif elem == 'log':
-                secondlist.append(self.log_number)
-            elif elem == 'exp':
-                secondlist.append(self.exp_number)
-            elif elem == 'sin':
-                secondlist.append(self.sin_number)
-            elif elem == 'cos':
-                secondlist.append(self.cos_number)
             elif elem == 'one':
                 secondlist.append(self.pure_numbers[0])
             elif elem == 'two':
@@ -175,80 +158,3 @@ class Voc():
                 print('bug2', elem)
 
         return firstlist, secondlist
-
-
-
-    def create_dic_of_simplifs(self):
-
-        if self.modescalar == 'A':
-            mydic_simplifs = {}
-            for x in Simplification_rules.mysimplificationrules_with_A:
-                toreplace = x[0]
-                replaceby = x[1]
-
-                if 'variable' in toreplace:
-                    for k in range(self.target[1]):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                elif 'arity0' in toreplace:
-                    for k in range(len(self.arity0symbols)):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                elif 'fonction' in toreplace:
-                    for k in range(len(self.arity1symbols)):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                elif 'allops' in toreplace:
-                    for k in range(len(self.arity2symbols)):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-                else:
-                    firstlist, secondlist = self.replacemotor(toreplace, replaceby, 0)
-                    mydic_simplifs.update(({str(firstlist): secondlist}))
-
-            maxrulesize = 0
-            for i in range(len(Simplification_rules.mysimplificationrules_with_A)):
-                if len(Simplification_rules.mysimplificationrules_with_A[i][0]) > maxrulesize:
-                    maxrulesize = len(Simplification_rules.mysimplificationrules_with_A[i][0])
-
-            return mydic_simplifs, maxrulesize
-
-        if self.modescalar == 'noA':
-            mydic_simplifs = {}
-            for x in Simplification_rules.mysimplificationrules_no_A:
-                toreplace = x[0]
-                replaceby = x[1]
-                if 'variable' in toreplace:
-                    for k in range(self.target[1]):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                elif 'arity0' in toreplace:
-                    for k in range(len(self.arity0symbols)):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                elif 'fonction' in toreplace:
-                    for k in range(len(self.arity1symbols)):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                elif 'allops' in toreplace:
-                    for k in range(len(self.arity2symbols)):
-                        firstlist, secondlist = self.replacemotor(toreplace, replaceby, k)
-                        mydic_simplifs.update(({str(firstlist): secondlist}))
-
-                else:
-                    firstlist, secondlist = self.replacemotor(toreplace, replaceby, 0)
-                    mydic_simplifs.update(({str(firstlist): secondlist}))
-
-            maxrulesize = 0
-
-            for i in range(len(Simplification_rules.mysimplificationrules_no_A)):
-                if len(Simplification_rules.mysimplificationrules_no_A[i][0]) > maxrulesize:
-                    maxrulesize = len(Simplification_rules.mysimplificationrules_no_A[i][0])
-
-            return mydic_simplifs, maxrulesize

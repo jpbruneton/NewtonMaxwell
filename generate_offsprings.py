@@ -13,14 +13,13 @@ import game_env
 # deepcopy required since state.reversepolish is a list : mutable
 
 class generate_offsprings():
-    def __init__(self, delete_ar1_ratio, p_mutate, p_cross, maximal_size, voc, maxL):
+    def __init__(self, delete_ar1_ratio, p_mutate, p_cross, maximal_size, voc):
         self.usesimplif = config.use_simplif
         self.p_mutate = p_mutate
         self.delete_ar1_ratio = delete_ar1_ratio
         self.p_cross = p_cross
         self.maximal_size = maximal_size
         self.voc = voc
-        self.maxL = maxL
 
 
     # ---------------------------------------------------------------------------- #

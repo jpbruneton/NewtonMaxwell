@@ -23,42 +23,38 @@ import sys
 # A class returning the reward of a given equation w.r.t. the target data (or function)
 class Evaluatefit:
 
-    def __init__(self, formulas, voc, target, mode, formal_target):
+    def __init__(self, formulas, voc, train_targets, mode, u, look_for):
+        self.calculus_mode = voc.calculus_mode
         self.formulas = copy.deepcopy(formulas)
-        self.target = target
+        self.train_targets = train_targets
+        self.u = u
+        self.look_for = look_for
         self.voc = voc
         self.mode = mode
         self.scalar_numbers = 0
-        if formal_target == 'der_sec':
+        self.maximal_size = voc.maximal_size
+
+        self.variable = self.train_targets[0][1] #00 is the name
+        self.range = self.variable[-1] - self.variable[0]
+        self.mytarget = self.train_targets[u]
+        self.mytarget_function = self.mytarget[2]
+        self.mytarget_1der = self.mytarget[3]
+        self.mytarget_2der = self.mytarget[4]
+        self.xsize = self.variable.shape[0]
+        self.stepx = self.range/self.xsize #only works if mode = 'E'
+
+        #print(self.mytarget_function.shape, self.mytarget_1der.shape, self.mytarget_2der.shape)
+        #todo why so many prints ? il surloade
+
+        if look_for == 'find_2nd_order_diff_eq':
             self.maxder = 2
-        else:
+            self.objectivefunction = self.mytarget_2der
+        elif look_for == 'find_1st_order_diff_eq':
             self.maxder = 1
-        self.name, self.n_variables, self.variables, self.targets, \
-        self.ranges, self.maximal_size, self.derivatives = self.target
-
-        self.xsize = self.variables[0].shape[0]
-        self.stepx = (self.ranges[0])/self.xsize #only works if mode = 'E'
-
-        if self.n_variables > 1:
-            self.ysize = self.variables[0].shape[1]
-            self.stepy = (self.ranges[1]) / self.ysize  # only works if mode = 'E'
-        if self.n_variables > 2:
-            self.zsize = self.variables[0].shape[2]
-            self.stepz = (self.ranges[2]) / self.zsize  # only works if mode = 'E'
-        if self.n_variables >3:
-            self.tsize = self.variables[0].shape[3]
-            self.stept = (self.ranges[3]) / self.tsize  # only works if mode = 'E'
-
-        if config.madifftarget == 0:
-            self.mavraitarget = self.targets[0]
-        if config.madifftarget == 'dx':
-            self.mavraitarget = self.derivatives[0]
-        elif config.madifftarget == 'dy':
-            self.mavraitarget = self.derivatives[1]
-        elif config.madifftarget == 'dz':
-            self.mavraitarget = self.derivatives[2]
-        elif config.madifftarget == 'dt':
-            self.mavraitarget = self.derivatives[3]
+            self.objectivefunction = self.mytarget_1der
+        elif look_for == 'find_function':
+            self.maxder = 0
+            self.objectivefunction = self.mytarget
 
     # ---------------------------------------------------------------------------- #
     def rename_formulas(self):
@@ -68,6 +64,7 @@ class Evaluatefit:
         # rename the A's
         self.scalar_numbers = self.formulas.count('A')
 
+        #CMAES doent work with only one scalar
         if self.scalar_numbers == 1:
             self.formulas += '+ A'
             self.scalar_numbers = 2
