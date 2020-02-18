@@ -162,7 +162,7 @@ class Game:
                     elif state_prop == [1, 1]:  # terminate or add scalar for mult, or add vector for wedge into [2,1] or [2,2] resp
                         allowedchars = [self.voc.terminalsymbol] + self.voc.arity0symbols
                     elif state_prop == [1, 2]:
-                        print('shd not happen by def la non plus')
+                        print('shd not happen by def la non plu')
                         print(self.state.formulas)
                         raise ValueError
                     elif state_prop == [2, 0]:
