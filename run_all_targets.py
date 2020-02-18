@@ -4,16 +4,16 @@ from Targets import Target, Voc
 import numpy as np
 
 # -----------------------------------------------#
-def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u):
+def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge):
     # init dictionnaries
-    voc = Voc(u, all_targets_name, calculus_mode, maximal_size, look_for)
+    voc = Voc(u, all_targets_name, calculus_mode, maximal_size, look_for, expert_knowledge)
     print('for target name', actual_train_target[0])
     print('we work with voc: ', voc.numbers_to_formula_dict)
 
     # and metaparameters
     poolsize = config.qd_init_pool_size
     if config.MAX_DEPTH ==1:
-        delete_ar1_ratio = 0.1
+        delete_ar1_ratio = 0.3
     elif config.MAX_DEPTH == 2:
         delete_ar1_ratio = 0.3
     else:
@@ -54,12 +54,13 @@ def kill_print():
     sys.stderr = logger
 
 # -----------------------------------------------#
-def load_targets(filenames_train, filenames_test, flatten, planar_motion):
+def load_targets(filenames_train, filenames_test, flatten, expert_knowledge):
     train = Target(filenames_train).targets
     test = Target(filenames_test).targets
     alltraintargets = []
     alltesttargets = []
     count = 0
+    planar_motion = expert_knowledge[3]
     eps = 1 if planar_motion else 0
     if flatten:
         for u in range(len(train)):
@@ -87,7 +88,7 @@ def load_targets(filenames_train, filenames_test, flatten, planar_motion):
         return alltraintargets, alltesttargets
 
 # ----------------------------------------------
-def init_targets(calculus_mode, calculus_modes, planar_motion):
+def init_targets(calculus_mode, calculus_modes, expert_knowledge):
     # check if possible
     error = False
     for file in filenames_train:
@@ -102,7 +103,7 @@ def init_targets(calculus_mode, calculus_modes, planar_motion):
     # if flatten == True, train of the form: [[name, variable array, one scalar target, its derivative, its second derivative] , n times]
     # else, [[name, var array, vec target, vec derivatives], p times] ; with 3*p = n
     flatten = True if calculus_mode == 'scalar' else False
-    train_targets, test_targets = load_targets(filenames_train, filenames_test, flatten, planar_motion)
+    train_targets, test_targets = load_targets(filenames_train, filenames_test, flatten, expert_knowledge)
 
     all_targets_name = [train_targets[u][0] for u in range(len(train_targets))]
     return  calculus_mode, all_targets_name, train_targets, test_targets
@@ -110,21 +111,24 @@ def init_targets(calculus_mode, calculus_modes, planar_motion):
 # -----------------------------------------------#
 if __name__ == '__main__':
     # don't display any output
-    noprint = True
+    noprint = False
     if noprint:
         kill_print()
 
     filenames_train = ['data_loader/kepler_1.csv']#,'data_loader/x2_train(t).csv']
     filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
-    planar_motion = True
-    # -------------------------------- init targets
-    calculus_modes = ['scalar', 'vectorial']
-    calculus_mode = calculus_modes[0] #default is vectorial mode on
-    calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes, planar_motion)
 
     #allow expert knowledge :
-    explicit_time_dependence = False
+    explicit_time_dependence = True
+    no_first_derivatives = False
+    use_distance = False
+    planar_motion = True
+    expert_knowledge =[explicit_time_dependence, no_first_derivatives, use_distance, planar_motion]
 
+    # -------------------------------- init targets
+    calculus_modes = ['scalar', 'vectorial']
+    calculus_mode = calculus_modes[1] #default is vectorial mode on
+    calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes, expert_knowledge)
 
     # solve :
     for u in range(len(train_targets)):
@@ -132,7 +136,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 24
+        maximal_size = 20
         # main exec
-        params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u)
+        params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

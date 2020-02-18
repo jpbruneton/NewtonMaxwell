@@ -46,6 +46,66 @@ class Game:
                 counter -= 1
         return counter
 
+    # ------------------------------------------------- #
+    def from_rpn_to_critical_info(self):
+        scal_number = 0
+        vec_number = 0
+        state = [scal_number, vec_number]
+        stack = [] #stack represente entres autres les deux dernieres entrees; ordonnées, a entrer dans un op (leur nature scal ou vec)
+
+        for char in self.state.reversepolish:
+            if char in self.voc.arity0symbols or char == self.voc.neutral_element or char == self.voc.true_zero_number:
+                state[0]+=1
+                if char in self.voc.arity0_vec:
+                    stack.append(1)
+                else:
+                    stack.append(0)
+            elif char in self.voc.arity1_vec:
+                stack = stack[:-1]+ [0]
+            elif char in self.voc.arity2symbols:
+                state[0]-= 1
+                if char == self.voc.wedge_number:
+                    stack = stack[:-2] + [1]
+                elif char == self.voc.dot_number:
+                    stack = stack[:-2] + [0]
+                elif char == self.voc.multnumber: #regular * so last elems of stack must be 1 0 or 0 1 : results in one vector
+                    stack = stack[:-2] + [1]
+                elif char == self.voc.plusnumber or char == self.voc.minusnumber : #can only be 0 0 or 1 1
+                    if stack[-2:] == [0, 0]:
+                        stack = stack[:-2] + [0]
+                    elif stack[-2:] == [1, 1]:
+                        stack = stack[:-2] + [1]
+                    else:
+                        print('bug')
+                        raise  ValueError
+                elif char == self.voc.divnumber : #can only be [1, 0] : vector divided by scalar gives a vector:
+                    if stack[-2:] == [1, 0]:
+                        stack = stack[:-2] + [1]
+                    else:
+                        print('bug division')
+                        raise  ValueError
+                else: #power : only applies to 00 -> 0
+                    if stack[-2:] == [0, 0]:
+                        stack = stack[:-2] + [0]
+                    else:
+                        print('bug power')
+                        raise  ValueError
+
+
+        for char in self.state.reversepolish:
+            if char in self.voc.arity0_vec:
+                state[1] +=1
+            elif char in self.voc.arity1_vec: #its the norm : it reduces a vec to a scalar
+                state[1] -=1
+            elif char in self.voc.dot_number:
+                state[1] -=2
+            elif char in self.voc.wedge_number:
+                state[1] -=1
+
+        return state, stack
+
+
+    # ---------------------------------------------------------------------------- #
     def allowedmoves_vectorial(self):
         current_state_size = len(self.state.reversepolish)
         space_left = self.maxL - current_state_size
@@ -55,7 +115,7 @@ class Game:
 
         # init : we go upward so we must start with a scalar
         if current_state_size == 0:
-            allowedchars = self.voc.arity0symbols
+            allowedchars = self.voc.arity0symbols #start either with a vec or a scalar
 
         else:
             # check if already terminated
@@ -64,12 +124,60 @@ class Game:
 
             else:
                 scalarcount = self.scalar_counter()
-                current_A_number = sum([1 for x in self.state.reversepolish if x in self.voc.pure_numbers[0]])
+                state_prop, stack = self.from_rpn_to_critical_info()
 
                 # check if we must terminate #todo ici final expression must be a vector
                 if space_left == 1:
-                    todo = 'todo'
 
+                    if state_prop == [1, 0]:      # must terminate
+                        allowedchars = [self.voc.terminalsymbol]
+                        print('this shd not happen sinon expression non vectorielle')
+                        print(self.state.formulas)
+                        raise ValueError
+                    elif state_prop == [1, 1]:   # must terminate
+                        allowedchars = [self.voc.terminalsymbol]
+                    elif state_prop == [1, 2]:
+                        print('shd not happen by def')
+                        print(self.state.formulas)
+                        raise ValueError
+                    elif state_prop == [2, 0]:
+                        print('this shd not happen sinon expression non vectorielle')
+                        print(self.state.formulas)
+                        raise ValueError
+                    elif state_prop == [2, 1]: #deux scalaires mais un seul vec, de type q E necessite *
+                        if stack[-2:] == [0, 1]:
+                            allowedchars = [self.voc.multnumber] # si last are q E ; si c'est E q : / autorisé aussi mais enfin ca revient au meme
+                        if stack[-2:] == [1,0]:
+                            allowedchars = [self.voc.multnumber, self.voc.divnumber]
+                    elif state_prop == [2, 2]: # afin de passer a [1,1]
+                        allowedchars = [self.voc.wedge_number]
+                    else:
+                        print('impossible termination')
+                        print(self.state.formulas)
+                        raise  ValueError
+
+                elif space_left == 2 : #need to anticipate for the case spaceleft = 1
+                    if state_prop == [1, 0]: # must add a vector -> into [2,1]
+                        allowedchars = [self.voc.arity0_vec]
+                    elif state_prop == [1, 1]:  # terminate or add scalar for mult, or add vector for wedge into [2,1] or [2,2] resp
+                        allowedchars = [self.voc.terminalsymbol] + self.voc.arity0symbols
+                    elif state_prop == [1, 2]:
+                        print('shd not happen by def la non plus')
+                        print(self.state.formulas)
+                        raise ValueError
+                    elif state_prop == [2, 0]:
+                        print('this shd not happen sinon expression non vectorielle :  2 car suffisent pas a terminer ceci en vecteur')
+                        print(self.state.formulas)
+                        raise ValueError
+                    elif state_prop == [2, 1]: #deux scalaires mais un seul vec, de type q E
+                        allowedchars = [self.voc.multnumber]
+                    elif state_prop == [2, 2]: # afin de passer a [1,1]
+                        allowedchars = [self.voc.wedge_number]
+
+
+                else: #space_left equal or more than 3
+
+        return allowedchars
     # ---------------------------------------------------------------------------- #
     def allowedmoves_novectors(self):
         current_state_size = len(self.state.reversepolish)

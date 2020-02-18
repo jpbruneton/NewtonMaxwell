@@ -1,6 +1,8 @@
 import config
+from copy import deepcopy
 
-def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
+def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_knowledge):
+    explicit_time_dependence, no_first_derivatives, use_distance, planar_motion = expert_knowledge
 
     # ============  arity 0 symbols =======================
     if calculus_mode == 'scalar':
@@ -10,12 +12,21 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
         my_dic_scalar_number = ['A_scal'] #we need both e.g. F = q v^B in Lorentz force : q is a one_scalar
         my_dic_vec_number = ['A_vec']
 
+    my_dic_special_scalar = []
+    if use_distance:
+        if planar_motion:
+            my_dic_special_scalar=['f0**2+f1**2']
+        else:
+            my_dic_special_scalar = ['f0**2+f1**2+f3**2']
     # targets :
     my_dic_other_targets = all_targets_name[:u] + all_targets_name[u+1:]
     my_dic_actual_target = [all_targets_name[u]]
 
     # variable is only time here:
-    my_dic_variables = ['x0']
+    if explicit_time_dependence:
+        my_dic_variables = ['x0']
+    else:
+        my_dic_variables = []
 
     #derivatives #are considered as scalars here, not via a node operator (#later todo?)
     if look_for == 'find_1st_order_diff_eq':
@@ -41,7 +52,8 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
                     my_dic_diff.append(der + '_f' + str(u))
                 else:
                     my_dic_diff.append(der + '_F' + str(u))
-
+    if no_first_derivatives:
+        my_dic_diff = []
     # ============  arity 1 symbols =======================
     # basic functions
     my_dic_scalar_functions = config.fonctions
@@ -72,11 +84,16 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
     numbers_to_formula_dict = {'1' : 'halt'}
 
     #arity 0:
-    arity0dic = my_dic_scalar_number + my_dic_vec_number + my_dic_variables + my_dic_actual_target\
+    arity0dic = my_dic_scalar_number + my_dic_vec_number + my_dic_special_scalar+ my_dic_variables + my_dic_actual_target\
                 + my_dic_other_targets + my_dic_diff
     index0 = 2
-    index1 = index0 + len(my_dic_scalar_number) + len(my_dic_vec_number)
+    index1 = index0 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar)
     index2 = index1 + len(my_dic_variables)
+    if calculus_mode == 'vectorial' and len(my_dic_vec_number) !=0:
+        vectorial_numbers = [index0 +  len(my_dic_scalar_number)]
+    if calculus_mode == 'vectorial':
+        vectorial_numbers.extend([i for i in range(index2, 2 + len(arity0dic))])
+        arity0_vec = tuple(deepcopy(vectorial_numbers))
 
     pure_numbers = tuple([i for i in range(index0, index1)])
     var_numbers = tuple([i for i in range(index1, index2)])
@@ -84,9 +101,21 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
     #arity 1 and 2 :
     arity1dic = my_dic_scalar_functions + my_dic_vectorial_functions
     arity2dic = my_dic_scalar_operators + my_dic_vec_operators + my_dic_power
-
     a0, a1, a2  = len(arity0dic), len(arity1dic), len(arity2dic)
+    if calculus_mode == 'vectorial':
 
+        vectorial_numbers.extend([i for i in range(2+a0+len(my_dic_scalar_functions), 2+a0+a1)])
+        arity1_vec = 2+a0+len(my_dic_scalar_functions)
+        vectorial_numbers.extend([i for i in range(2+a0+a1+len(my_dic_scalar_operators), 2+a0+a1+len(my_dic_scalar_operators) + len(my_dic_vec_operators))])
+        arity2_vec = tuple([i for i in range(2+a0+a1+len(my_dic_scalar_operators), 2+a0+a1+len(my_dic_scalar_operators) + len(my_dic_vec_operators))])
+    if calculus_mode == 'vectorial':
+        vectorial_numbers = tuple(vectorial_numbers)
+        print(vectorial_numbers)
+    else:
+        vectorial_numbers = None
+        arity0_vec = None
+        arity1_vec = None
+        arity2_vec = None
     arity0symbols = tuple([i for i in range(2, 2 + a0)])
     arity1symbols = tuple([i for i in range(2 + a0, 2 + a0 + a1)])
     arity2symbols = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2)])
@@ -119,29 +148,9 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for):
     terminalsymbol = 1
 
 
-    if False:
-        print(modescalar)
-        print(arity0symbols)
-        print(arity1symbols)
-        print(arity2symbols_no_power)
-        print(arity2symbols)
-        print(pure_numbers)
-        print(power_number)
-        print(true_zero_number)
-        print(neutral_element)
-        print(infinite_number)
-        print(arity0symbols_var_and_tar)
-        print(log_number)
-        print(exp_number)
-        print(plusnumber)
-        print(minusnumber)
-        print(multnumber)
-        print(divnumber)
-        print(explognumbers)
-        print(trignumbers)
-        print('========================')
 
     return numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
            infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
-           plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber
+           plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
+           arity0_vec, arity1_vec, arity2_vec
 

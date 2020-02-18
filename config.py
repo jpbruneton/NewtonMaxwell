@@ -9,8 +9,8 @@ list_scalars = ['one', 'two']
 operators = ['+', '-', '*', '/']
 
 #____________termination stuff_______________
-iterationa = 100
-iterationnoa = 100#2015
+iterationa = 1000
+iterationnoa = 1000#2015
 termination_nmrse = 1e-6
 
 #_________________Taget related_______________#
@@ -50,7 +50,7 @@ def get_size(iteration):
     size = 2*internal_nodes[index]+1
     return size
 
-qd_init_pool_size = 2000
+qd_init_pool_size = 400
 extendpoolfactor = 1.5
 #which_target = 'fig1-waveform-H_phase2_1.txt'
 

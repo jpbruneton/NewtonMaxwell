@@ -69,16 +69,18 @@ class Target():
 
 
 class Voc():
-    def __init__(self, u, all_targets_name, calculus_mode, maximal_size, look_for):
+    def __init__(self, u, all_targets_name, calculus_mode, maximal_size, look_for,expert_knowledge):
         self.calculus_mode = calculus_mode
         self.maximal_size = maximal_size
         self.all_targets_name = all_targets_name
         self.n_targets = len(all_targets_name)
         self.look_for = look_for
+        self.expert_knowledge = expert_knowledge
         self.numbers_to_formula_dict, self.arity0symbols, self.arity1symbols, self.arity2symbols, self.true_zero_number, self.neutral_element, \
         self.infinite_number, self.terminalsymbol, self.pure_numbers, self.arity2symbols_no_power, self.power_number, self.var_numbers, \
-        self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.norm_number, self.dot_number, self.wedge_number \
-            = Build_dictionnaries.get_dic(self.n_targets, self.all_targets_name, u, self.calculus_mode, self.look_for)
+        self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.norm_number, self.dot_number, self.wedge_number, \
+        self.vectorial_numbers, self.arity0_vec, self.arity1_vec, self.arity2_vec\
+            = Build_dictionnaries.get_dic(self.n_targets, self.all_targets_name, u, self.calculus_mode, self.look_for, self.expert_knowledge)
 
 
         #todo redo later

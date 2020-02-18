@@ -14,8 +14,8 @@ def keplerian_motion(eccentricty, v):
     # exact motion requires solving a transcendental equation :
     def ff(x,t):
         return x - eccentricty*np.sin(x) - v *t
-    p=500
-    t = np.linspace(0.6, 2, num=p)
+    p=5000
+    t = np.linspace(0, 6, num=p)
     sols=[]
 
     for elem in t:
@@ -29,8 +29,8 @@ def keplerian_motion(eccentricty, v):
         theta.append(2*np.arctan(np.tan(elem/2)*np.sqrt((1 + eccentricty)/(1-eccentricty))))
 
     radius = 1/(1+ eccentricty*np.cos(theta))
-    plt.polar(theta, radius)
-    plt.show()
+    #plt.polar(theta, radius)
+    #plt.show()
     x = list(radius*np.cos(theta))
     y = list(radius*np.sin(theta))
     z= [0]*p
@@ -48,8 +48,8 @@ def keplerian_motion(eccentricty, v):
         rhs.append(-x[i]/(2*(x[i]**2+y[i]**2)**(3/2)))
         diff.append((-x[i]/(2*(x[i]**2+y[i]**2)**(3/2)))/f0sec[i])
 
-    plt.plot(diff)
-    plt.show()
+    #plt.plot(diff)
+    #plt.show()
 
 keplerian_motion(0.7,1)
 
