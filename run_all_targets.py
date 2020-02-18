@@ -130,6 +130,8 @@ if __name__ == '__main__':
     calculus_mode = calculus_modes[1] #default is vectorial mode on
     calculus_mode, all_targets_name, train_targets, test_targets = init_targets(calculus_mode, calculus_modes, expert_knowledge)
 
+    import game_env
+
     # solve :
     for u in range(len(train_targets)):
         actual_train_target = train_targets[u]
@@ -139,4 +141,8 @@ if __name__ == '__main__':
         maximal_size = 20
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
-        run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)
+
+        voc = params[-1]
+        game_env.randomeqs(voc)
+
+        #run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

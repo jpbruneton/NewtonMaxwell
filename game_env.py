@@ -50,6 +50,7 @@ class Game:
     def from_rpn_to_critical_info(self):
         scal_number = 0
         vec_number = 0
+        print('avec le state', self.state.reversepolish, self.state.formulas)
         state = [scal_number, vec_number]
         stack = [] #stack represente entres autres les deux dernieres entrees; ordonnées, a entrer dans un op (leur nature scal ou vec)
 
@@ -60,7 +61,7 @@ class Game:
                     stack.append(1)
                 else:
                     stack.append(0)
-            elif char in self.voc.arity1_vec:
+            elif char == self.voc.arity1_vec:
                 stack = stack[:-1]+ [0]
             elif char in self.voc.arity2symbols:
                 state[0]-= 1
@@ -95,11 +96,11 @@ class Game:
         for char in self.state.reversepolish:
             if char in self.voc.arity0_vec:
                 state[1] +=1
-            elif char in self.voc.arity1_vec: #its the norm : it reduces a vec to a scalar
+            elif char == self.voc.arity1_vec: #its the norm : it reduces a vec to a scalar
                 state[1] -=1
-            elif char in self.voc.dot_number:
+            elif char == self.voc.dot_number:
                 state[1] -=2
-            elif char in self.voc.wedge_number:
+            elif char == self.voc.wedge_number:
                 state[1] -=1
 
         return state, stack
@@ -109,9 +110,8 @@ class Game:
     def allowedmoves_vectorial(self):
         current_state_size = len(self.state.reversepolish)
         space_left = self.maxL - current_state_size
-
-        current_A_number = sum([1 for x in self.state.reversepolish if x in self.voc.pure_numbers[0]])
-        current_A_number += sum([3 for x in self.state.reversepolish if x in self.voc.pure_numbers[1]])
+        current_A_number = sum([1 for x in self.state.reversepolish if x == self.voc.pure_numbers[0]])
+        current_A_number += sum([3 for x in self.state.reversepolish if x == self.voc.pure_numbers[1]])
 
         # init : we go upward so we must start with a scalar
         if current_state_size == 0:
@@ -123,7 +123,6 @@ class Game:
                 allowedchars = []
 
             else:
-                scalarcount = self.scalar_counter()
                 state_prop, stack = self.from_rpn_to_critical_info()
 
                 # check if we must terminate #todo ici final expression must be a vector
@@ -149,33 +148,68 @@ class Game:
                             allowedchars = [self.voc.multnumber] # si last are q E ; si c'est E q : / autorisé aussi mais enfin ca revient au meme
                         if stack[-2:] == [1,0]:
                             allowedchars = [self.voc.multnumber, self.voc.divnumber]
-                    elif state_prop == [2, 2]: # afin de passer a [1,1]
-                        allowedchars = [self.voc.wedge_number]
+                    elif state_prop == [2, 2]: # afin de passer a [1,1] A wedge A, A+A ou A -A
+                        allowedchars = [self.voc.wedge_number, self.voc.plusnumber, self.voc.minusnumber]
                     else:
                         print('impossible termination')
                         print(self.state.formulas)
                         raise  ValueError
 
+                #euh c'est le meme exactement non?
                 elif space_left == 2 : #need to anticipate for the case spaceleft = 1
                     if state_prop == [1, 0]: # must add a vector -> into [2,1]
                         allowedchars = [self.voc.arity0_vec]
                     elif state_prop == [1, 1]:  # terminate or add scalar for mult, or add vector for wedge into [2,1] or [2,2] resp
-                        allowedchars = [self.voc.terminalsymbol] + self.voc.arity0symbols
+                        allowedchars = [self.voc.terminalsymbol] + list(self.voc.arity0symbols)
                     elif state_prop == [1, 2]:
-                        print('shd not happen by def la non plu')
+                        print('shd not happen by def la non plus')
                         print(self.state.formulas)
                         raise ValueError
                     elif state_prop == [2, 0]:
-                        print('this shd not happen sinon expression non vectorielle :  2 car suffisent pas a terminer ceci en vecteur')
+                        print('this shd not happen sinon expression non vectorielle :  ',
+                              'car 2 spaceleft ne suffisent pas a terminer ceci en vecteur')
                         print(self.state.formulas)
                         raise ValueError
                     elif state_prop == [2, 1]: #deux scalaires mais un seul vec, de type q E
-                        allowedchars = [self.voc.multnumber]
-                    elif state_prop == [2, 2]: # afin de passer a [1,1]
-                        allowedchars = [self.voc.wedge_number]
-
+                        if stack[-2:] == [0, 1]:
+                            allowedchars = [self.voc.multnumber]  # si last are q E ; si c'est E q : / autorisé aussi mais enfin ca revient au meme
+                        elif stack[-2:] == [1, 0]:
+                            allowedchars = [self.voc.multnumber, self.voc.divnumber]
+                        else:
+                            print('cas oublie')
+                            print(stack, state_prop, self.state.formulas)
+                            raise ValueError
+                    elif state_prop == [2, 2]: # afin de passer a [1,1] pas assez de place pour le reste
+                        allowedchars = [self.voc.wedge_number, self.voc.plusnumber, self.voc.minusnumber]
+                    else:
+                        print('cas non prevu')
+                        print(stack, state_prop, self.state.formulas)
+                        raise ValueError
 
                 else: #space_left equal or more than 3
+                    # cas on n'a pas de vecteur dans l'expression : il en faudra au moins necessairement:
+                    if state_prop[1] == 0:
+                        #vecteur requis ssi
+                        if space_left == state_prop[0] + 2:
+                            allowedchars = self.voc.arity0_vec
+                        else:
+                            if state_prop[0] <= 1:
+                                allowedchars= self.voc.arity0symbols
+                            else :
+                                allowedchars = self.voc.arity0symbols + self.voc.arity2novec
+
+                    else: #si j'en ai au moins 1
+                        if space_left >= state_prop[0] + 1:
+                            allowedchars = self.voc.arity0symbols
+                            if state_prop[0]>=2:
+                                if stack[-2:] == [1,1]: # vec vec
+                                    allowedchars = list(self.voc.arity2_vec) + [self.voc.arity1_vec]
+                                elif stack[-2:] == [0,1]: #scal vec
+                                    allowedchars = [self.voc.multnumber] + [self.voc.arity1_vec]
+                                elif stack[-2:] == [1,0]: #vec scal
+                                    allowedchars = [self.voc.multnumber] + [self.voc.divnumber]
+                                elif stack[-2:] == [0,0]: #scal scal
+                                    allowedchars = self.voc.arity2novec
 
         return allowedchars
     # ---------------------------------------------------------------------------- #
@@ -297,6 +331,7 @@ class Game:
             else:
                 return 0
         if self.calculus_mode == 'vectorial':
+            print('checkin terminal, ignore')
             if self.allowedmoves_vectorial() == []:
                 return 1
             else:
@@ -384,9 +419,9 @@ def randomeqs(voc):
             nextchar = np.random.choice(game.allowedmoves_novectors())
             game.takestep(nextchar)
         else:
+            print('allowed moes', game.allowedmoves_vectorial())
             nextchar = np.random.choice(game.allowedmoves_vectorial())
             game.takestep(nextchar)
-
     if config.use_simplif:
         simplestate = simplif_eq(voc, game.state)
         simplegame = Game(voc, simplestate)
@@ -395,6 +430,7 @@ def randomeqs(voc):
 
     else:
         return game
+
 
 # ---------------------------------------------------------
 def simplif_eq(voc, state):

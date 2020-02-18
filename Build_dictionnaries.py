@@ -120,7 +120,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     arity1symbols = tuple([i for i in range(2 + a0, 2 + a0 + a1)])
     arity2symbols = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2)])
     arity2symbols_no_power = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2 -1)])
-
+    arity2symbols_novec = tuple([x for x in arity2symbols if x not in arity2_vec])
     norm_number = 2+a0+a1-1
     #dont change order of operations!
     plusnumber = 2 + a0 + a1
@@ -152,5 +152,5 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     return numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
            infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
            plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
-           arity0_vec, arity1_vec, arity2_vec
+           arity0_vec, arity1_vec, arity2_vec, arity2symbols_novec
 
