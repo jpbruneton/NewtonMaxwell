@@ -48,62 +48,99 @@ class Game:
 
     # ------------------------------------------------- #
     def from_rpn_to_critical_info(self):
-        scal_number = 0
-        vec_number = 0
-        print('avec le state', self.state.reversepolish, self.state.formulas)
-        state = [scal_number, vec_number]
-        stack = [] #stack represente entres autres les deux dernieres entrees; ordonnées, a entrer dans un op (leur nature scal ou vec)
+        can_be_terminated = 0
+        vec_number = 0 #number of vec in expression
 
         for char in self.state.reversepolish:
             if char in self.voc.arity0symbols or char == self.voc.neutral_element or char == self.voc.true_zero_number:
-                state[0]+=1
+                can_be_terminated += 1
+            if char in self.voc.arity0_vec:
+                vec_number+=1
+            elif char == self.voc.arity1_vec: #its the norm
+                vec_number -=1
+            elif char == self.voc.wedge_number:
+                vec_number -=1
+            elif char == self.voc.dot_number:
+                vec_number -=2
+            elif char in self.voc.arity2symbols:
+                can_be_terminated -= 1
+            else:
+                pass
+
+        stack = []  # stack represente les deux dernieres entrees; ordonnées, a entrer dans un op [0,1] est q Avec : attendra un *; mais [1, 0] peut prendre * ou / : ca commute pas
+        for char in self.state.reversepolish:
+            #arity 0
+            if char in self.voc.arity0symbols:
                 if char in self.voc.arity0_vec:
                     stack.append(1)
                 else:
                     stack.append(0)
-            elif char == self.voc.arity1_vec:
-                stack = stack[:-1]+ [0]
-            elif char in self.voc.arity2symbols:
-                state[0]-= 1
-                if char == self.voc.wedge_number:
-                    stack = stack[:-2] + [1]
+
+            #arity 1
+            elif char in self.voc.arity1symbols:
+                if char == self.voc.norm_number:
+                    if stack[-1] == 1:
+                        stack = stack[:-1] + [0]
+                    else:
+                        print('fixbug: cant take the norm of a scalar')
+                        raise ValueError
+                # if function like cos : stack doesnt change but for debug:
+                else:
+                    if stack[-1] !=0:
+                        print('cant take cosine of a vector (no pointwise operations allowed by choice)')
+                        raise ValueError
+
+            else: #arity 2
+                lasts = stack[-2:]
+
+                if char == self.voc.divnumber : #can only be [1, 0] : vector divided by scalar gives a vector:
+                    if lasts == [1, 0]:
+                        toadd = [1]
+                    elif lasts == [0,0]:
+                        toadd = [0]
+                    else:
+                        print('fixbug: scalar cant be divided by vector; or vector by vector')
+                        raise  ValueError
+
+                elif char == self.voc.multnumber:
+                    if lasts == [0,0]:
+                        toadd = [0]
+                    elif lasts == [0,1] or lasts == [1, 0]:
+                        toadd = [1]
+                    else:
+                        print('fixbug: vecors cant be multiplied')
+                        raise ValueError
+
+                elif char == self.voc.plusnumber or char == self.voc.minusnumber: # trick : its equivalent to OR gate:
+                    toadd = [lasts[0] or lasts[1]]
+
+                elif char == self.voc.power_number:
+                    if lasts == [0,0]:
+                        toadd = [0]
+                    else:
+                        print('bugfixing : power not authorized here')
+                        raise ValueError
+
+                elif char == self.voc.wedge_number:
+                    if lasts == [1,1]:
+                        toadd = [1]
+                    else:
+                        print('bug : wedge not allowed')
+                        raise ValueError
+
                 elif char == self.voc.dot_number:
-                    stack = stack[:-2] + [0]
-                elif char == self.voc.multnumber: #regular * so last elems of stack must be 1 0 or 0 1 : results in one vector
-                    stack = stack[:-2] + [1]
-                elif char == self.voc.plusnumber or char == self.voc.minusnumber : #can only be 0 0 or 1 1
-                    if stack[-2:] == [0, 0]:
-                        stack = stack[:-2] + [0]
-                    elif stack[-2:] == [1, 1]:
-                        stack = stack[:-2] + [1]
+                    if lasts == [1, 1]:
+                        toadd = [0]
                     else:
-                        print('bug')
-                        raise  ValueError
-                elif char == self.voc.divnumber : #can only be [1, 0] : vector divided by scalar gives a vector:
-                    if stack[-2:] == [1, 0]:
-                        stack = stack[:-2] + [1]
-                    else:
-                        print('bug division')
-                        raise  ValueError
-                else: #power : only applies to 00 -> 0
-                    if stack[-2:] == [0, 0]:
-                        stack = stack[:-2] + [0]
-                    else:
-                        print('bug power')
-                        raise  ValueError
+                        print('bug : dot product not allowed')
+                        raise ValueError
+                #updtae stack
+                stack = stack[:-2] + toadd
 
+        print('avec le state', self.state.reversepolish, self.state.formulas)
+        print('jai', can_be_terminated, vec_number, stack)
 
-        for char in self.state.reversepolish:
-            if char in self.voc.arity0_vec:
-                state[1] +=1
-            elif char == self.voc.arity1_vec: #its the norm : it reduces a vec to a scalar
-                state[1] -=1
-            elif char == self.voc.dot_number:
-                state[1] -=2
-            elif char == self.voc.wedge_number:
-                state[1] -=1
-
-        return state, stack
+        return can_be_terminated, vec_number, stack
 
 
     # ---------------------------------------------------------------------------- #
@@ -123,37 +160,33 @@ class Game:
                 allowedchars = []
 
             else:
-                state_prop, stack = self.from_rpn_to_critical_info()
+                can_be_terminated, vec_number, stack = self.from_rpn_to_critical_info()
 
-                # check if we must terminate #todo ici final expression must be a vector
                 if space_left == 1:
-
-                    if state_prop == [1, 0]:      # must terminate
+                    if can_be_terminated == 0:
+                        print('bug : cant terminate')
+                        raise ValueError
+                    elif can_be_terminated == 1: # must terminate
                         allowedchars = [self.voc.terminalsymbol]
-                        print('this shd not happen sinon expression non vectorielle')
-                        print(self.state.formulas)
-                        raise ValueError
-                    elif state_prop == [1, 1]:   # must terminate
-                        allowedchars = [self.voc.terminalsymbol]
-                    elif state_prop == [1, 2]:
-                        print('shd not happen by def')
-                        print(self.state.formulas)
-                        raise ValueError
-                    elif state_prop == [2, 0]:
-                        print('this shd not happen sinon expression non vectorielle')
-                        print(self.state.formulas)
-                        raise ValueError
-                    elif state_prop == [2, 1]: #deux scalaires mais un seul vec, de type q E necessite *
-                        if stack[-2:] == [0, 1]:
-                            allowedchars = [self.voc.multnumber] # si last are q E ; si c'est E q : / autorisé aussi mais enfin ca revient au meme
-                        if stack[-2:] == [1,0]:
-                            allowedchars = [self.voc.multnumber, self.voc.divnumber]
-                    elif state_prop == [2, 2]: # afin de passer a [1,1] A wedge A, A+A ou A -A
-                        allowedchars = [self.voc.wedge_number, self.voc.plusnumber, self.voc.minusnumber]
+                        if vec_number !=1:
+                            print('this shd not happen sinon expression non vectorielle')
+                            print(self.state.formulas)
+                            raise ValueError
+                    elif can_be_terminated == 2:
+                        if vec_number == 1: #deux nombres mais un seul vec, de type q E necessite * ou /
+                            if stack[-2:] == [0, 1]:
+                                allowedchars = [self.voc.multnumber]  # si last are q E ; si c'est E q : / autorisé aussi mais enfin ca revient au meme
+                            elif stack[-2:] == [1, 0]:
+                                allowedchars = [self.voc.multnumber, self.voc.divnumber]
+                            elif stack[-2:] == [1, 1]:  # A wedge A, A+A ou A -A
+                                allowedchars = [self.voc.wedge_number, self.voc.plusnumber, self.voc.minusnumber]
+                            else:
+                                print('cas non prevu', self.state.formulas, can_be_terminated,vec_number, stack)
+                                raise ValueError
                     else:
-                        print('impossible termination')
-                        print(self.state.formulas)
-                        raise  ValueError
+                        print('bug : cant terminate')
+                        raise ValueError
+
 
                 #euh c'est le meme exactement non?
                 elif space_left == 2 : #need to anticipate for the case spaceleft = 1
@@ -186,7 +219,7 @@ class Game:
                         print(stack, state_prop, self.state.formulas)
                         raise ValueError
 
-                else: #space_left equal or more than 3
+                else: # #space_left equal or more than 3
                     # cas on n'a pas de vecteur dans l'expression : il en faudra au moins necessairement:
                     if state_prop[1] == 0:
                         #vecteur requis ssi
@@ -419,8 +452,8 @@ def randomeqs(voc):
             nextchar = np.random.choice(game.allowedmoves_novectors())
             game.takestep(nextchar)
         else:
-            print('allowed moes', game.allowedmoves_vectorial())
-            nextchar = np.random.choice(game.allowedmoves_vectorial())
+            allowed_moves = game.allowedmoves_vectorial()
+            nextchar = np.random.choice(allowed_moves)
             game.takestep(nextchar)
     if config.use_simplif:
         simplestate = simplif_eq(voc, game.state)
