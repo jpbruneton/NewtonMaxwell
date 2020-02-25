@@ -426,8 +426,12 @@ class generate_offsprings():
 
             before_swap_rpn1 = ast1.from_ast_to_rpn(ast1.topnode)
             before_swap_rpn2 = ast2.from_ast_to_rpn(ast2.topnode)
-            bef_game1 = Game(self.voc, before_swap_rpn1)
-            bef_game2 = Game(self.voc, before_swap_rpn2)
+
+            bfstate1 = State(self.voc, before_swap_rpn1)
+            bfstate2 = State(self.voc, before_swap_rpn2)
+
+            bef_game1 = Game(self.voc, bfstate1)
+            bef_game2 = Game(self.voc, bfstate2)
             _, vec_number1, _ = bef_game1.from_rpn_to_critical_info()
             _, vec_number2, _ = bef_game2.from_rpn_to_critical_info()
 

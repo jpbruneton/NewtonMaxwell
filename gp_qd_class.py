@@ -298,9 +298,10 @@ class GP_QD():
 
 class printresults():
 
-    def __init__(self, target, voc):
+    def __init__(self, target, voc, calculusmode):
         self.target = target
         self.voc = voc
+        self.calculusmode = calculusmode
 
     # ---------------------------------------------- |
     # to print understandable results
@@ -391,7 +392,11 @@ class printresults():
         evaluate = Evaluatefit(best_formula, self.voc, self.target, 'train', u, look_for)
         evaluate.rename_formulas()
 
-        validation_reward = evaluate.eval_reward_nrmse(with_a_best)
+        if self.calculusmode == 'scalar':
+            validation_reward = evaluate.eval_reward_nrmse(with_a_best)
+        else:
+            validation_reward = evaluate.eval_reward_nrmse_vectorial(with_a_best)
+
         if validation_reward > 100000000:
             validation_reward = 100000000
 
@@ -426,7 +431,11 @@ class printresults():
 
             evaluate = Evaluatefit(formula, self.voc, self.target, 'train',u, look_for)
             evaluate.rename_formulas()
-            avg_validation_reward += evaluate.eval_reward_nrmse(with_a)
+            if self.calculusmode == 'scalar':
+                avg_validation_reward += evaluate.eval_reward_nrmse(with_a)
+            else:
+                avg_validation_reward += evaluate.eval_reward_nrmse_vectorial(with_a)
+
         avg_validation_reward /= len(rank)
 
         timespent = time.time() - eval(prefix)/10000000

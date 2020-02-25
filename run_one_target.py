@@ -151,7 +151,7 @@ def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, c
 
 
         # save results and print
-        saveme = printresults(train_targets, voc)
+        saveme = printresults(train_targets, voc, calculus_mode)
         tnumber = 999
         valrmse, bf = saveme.saveresults(newbin, replacements, i, gp.QD_pool, gp.maxa, tnumber, local_alleqs, prefix, u, look_for)
 
