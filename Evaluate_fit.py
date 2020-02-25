@@ -37,26 +37,12 @@ class Evaluatefit:
 
         self.variable = [self.train_targets[0][1]] #00 is the name
         self.mytarget = self.train_targets[u]
-        self.mytarget_function = np.array(self.mytarget[2])
-        self.mytarget_1der = np.array(self.mytarget[3])
-        self.mytarget_2der = np.array(self.mytarget[4])
-
-        self.array_functions = np.array([x[2] for x in self.train_targets])
-        self.array_first_der = np.array([x[3] for x in self.train_targets])
-
-        #f = self.array_functions[0]
-        #fp = self.array_first_der[0]
-        # test = np.vdot(f, fp)
-        # check = 0
-        # for i in range(3):
-        #     for j in range(len(f[i])):
-        #         check += f[i][j]*fp[i][j]
-        # print('ch', check)
-        # print(test)
-        # input()
-        #print(self.mytarget_function.shape, self.mytarget_1der.shape, self.mytarget_2der.shape)
-        #todo why so many prints ? il surloade
-
+        self.mytarget_function = self.mytarget[2]
+        self.mytarget_1der = self.mytarget[3]
+        self.mytarget_2der = self.mytarget[4]
+        self.array_functions = [x[2] for x in self.train_targets]
+        self.array_first_der = [x[3] for x in self.train_targets]
+        self.size = self.variable[0].size
         if look_for == 'find_2nd_order_diff_eq':
             self.maxder = 2
             self.objectivefunction = self.mytarget_2der
@@ -90,9 +76,13 @@ class Evaluatefit:
                 else:
                     neweq += char
         else:
+            if self.scalar_numbers == 1 and self.v_numbers ==0: #cmaes must be at least 2 dim
+                self.formulas += '+ B'
+                self.v_numbers+=1
+
             #first rename B to an array of scalars:
             string_to_replace = 'B'
-            replace_by = 'np.array([A,A,A])'
+            replace_by = 'np.array([A*ones,A*ones,A*ones])'
             self.formulas = self.formulas.replace(string_to_replace, replace_by)
             count = 0
 
@@ -144,7 +134,12 @@ class Evaluatefit:
                 replace_by = 'Fp[' + str(u) + ']'
             neweq = neweq.replace(string_to_replace, replace_by)
 
+        string_to_replace = 'SIZE'
+        replace_by = str(self.size)
+        neweq = neweq.replace(string_to_replace, replace_by)
+
         self.formulas = neweq
+
         print('rename', neweq)
     # ---------------------------------------------------------------------------- #
     def formula_eval(self, x, f, fp, S) :
@@ -157,11 +152,11 @@ class Evaluatefit:
                 return True, toreturn
 
         except (RuntimeWarning, RuntimeError, ValueError, ZeroDivisionError, OverflowError, SystemError, AttributeError):
-
             return False, None
 
     # ------------------
     def formula_eval_vectorial(self, x, F, Fp, S) :
+        ones = np.ones(x[0].size)
         try:
             mafonction = eval(self.formulas)
             if type(mafonction) != np.ndarray or np.isnan(np.sum(mafonction)) or np.isinf(np.sum(mafonction)) :
@@ -171,7 +166,6 @@ class Evaluatefit:
                 return True, toreturn
 
         except (RuntimeWarning, RuntimeError, ValueError, ZeroDivisionError, OverflowError, SystemError, AttributeError):
-
             return False, None
 
     # ---------------------------------------------------------------------------- #
@@ -180,8 +174,7 @@ class Evaluatefit:
         success, eval = self.formula_eval_vectorial(self.variable, self.array_functions, self.array_first_der, S)
 
         if success == True:
-            resize_eval = eval[:self.objectivefunction.size]
-            diff = resize_eval - self.objectivefunction
+            diff = eval - self.objectivefunction
             err += (np.sum(diff ** 2))
             err /= np.sum(np.ones_like(diff))
         else:
@@ -195,8 +188,7 @@ class Evaluatefit:
         success, eval = self.formula_eval(self.variable, self.array_functions, self.array_first_der, a)
 
         if success == True:
-            resize_eval = eval[:self.objectivefunction.size]
-            diff = resize_eval - self.objectivefunction
+            diff = eval - self.objectivefunction
             err += (np.sum(diff**2))
             err /= np.sum(np.ones_like(diff))
         else:
@@ -237,31 +229,26 @@ class Evaluatefit:
         # applies the cmaes fit:
         initialguess = 2 * np.random.rand(self.scalar_numbers+3*self.v_numbers) - 1
         initialsigma = np.random.randint(1, 5)
-
         try:
             res = cma.CMAEvolutionStrategy(initialguess, initialsigma,
                                            {'verb_disp': 0}).optimize(self.evaluation_target_vectorial).result
-
             reco = res.xfavorite
             rec = []
-
             for u in range(reco.size):
                 rec.append(reco[u])
 
         except (
         RuntimeWarning, RuntimeError, ValueError, ZeroDivisionError, OverflowError, SystemError, AttributeError):
-
             return False, [1] * self.scalar_numbers
-
         return True, rec
     # ------------------------------------------------------------------------------- #
     def eval_reward_nrmse(self, S):
     #for validation only
         success, result = self.formula_eval(self.variable, self.array_functions, self.array_first_der, S)
         if success:
-            resize_result = result[:self.objectivefunction.size]
-            quadratic_cost = np.sum((self.objectivefunction - resize_result)**2)
+            quadratic_cost = np.sum((self.objectivefunction - result)**2)
             n = self.objectivefunction.size
+
             rmse = np.sqrt(quadratic_cost / n)
             nrmse = rmse / np.std(self.objectivefunction)
             return nrmse
@@ -274,8 +261,7 @@ class Evaluatefit:
     #for validation only
         success, result = self.formula_eval_vectorial(self.variable, self.array_functions, self.array_first_der, S)
         if success:
-            resize_result = result[:self.objectivefunction.size] #todo : doute c'est trois non?
-            quadratic_cost = np.sum((self.objectivefunction - resize_result)**2)
+            quadratic_cost = np.sum((self.objectivefunction - result)**2)
             n = self.objectivefunction.size
             rmse = np.sqrt(quadratic_cost / n)
             nrmse = rmse / np.std(self.objectivefunction)

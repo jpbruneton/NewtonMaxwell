@@ -74,7 +74,7 @@ class GP_QD():
 
         else:
 
-            gp_motor = generate_offsprings(self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.maximal_size, self.voc)
+            gp_motor = generate_offsprings(self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.maximal_size, self.voc, self.calculus_mode)
             all_states = []
             small_states=[]
             for bin_id in self.QD_pool:
@@ -148,10 +148,14 @@ class GP_QD():
 
                     index = np.random.randint(0, len(all_states))
                     to_mutate = copy.deepcopy(all_states[index])
-                    s, prestate1 = gp_motor.mutate(state)
-                    s, prestate2 = gp_motor.mutate(to_mutate)
-                    suc, state1, state2 = gp_motor.crossover(prestate1, prestate2)
-
+                    if self.calculus_mode == 'scalar':
+                        s, prestate1 = gp_motor.mutate(state)
+                        s, prestate2 = gp_motor.mutate(to_mutate)
+                        suc, state1, state2 = gp_motor.crossover(prestate1, prestate2)
+                    else:
+                        s, prestate1 = gp_motor.vectorial_mutation(state)
+                        s, prestate2 = gp_motor.vectorial_mutation(to_mutate)
+                        suc, state1, state2 = gp_motor.vectorial_crossover(prestate1, prestate2)
                     if suc:
                         #if str(state1.reversepolish) not in alleqs:
                         newpool.append(state1)

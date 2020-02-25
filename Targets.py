@@ -31,6 +31,7 @@ class Target():
         data = np.loadtxt(self.filenames[u], delimiter=',')
         n_targets = data.shape[1] -1
 
+
         t = data[:, 0]
         f0 = data[:, 1]
         target_functions = [f0]
@@ -63,8 +64,8 @@ class Target():
         if n_targets > 3:
             print('not supported yet; vectors should be no more than in 3D space')
             raise ValueError
-
-        return [t, target_functions, first_derivatives, second_derivatives]
+        return [t, np.transpose(np.array(target_functions)), np.transpose(np.array(first_derivatives)),
+                np.transpose(np.array(second_derivatives))]
 
 
 #{'1': 'halt', '2': 'A_scal',

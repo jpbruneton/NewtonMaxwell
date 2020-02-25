@@ -23,10 +23,11 @@ class State:
 # ---------------------------------------------------------------------------- #
 # Constructs both the reverse polish vector representations and math formulas
 
-    def __init__(self, voc, state):
+    def __init__(self, voc, state, calculus_mode):
 
         self.voc = voc
         self.reversepolish = state
+        self.calcuusmode = calculus_mode
         self.formulas = self._convert_rpn_to_formula()
 
 # ---------------------------------------------------------------------------- #
@@ -60,70 +61,140 @@ class State:
         #read the RPN from left to right and stack the corresponding string
         stack = []
 
-        for number in self.reversepolish:
-            #get character
-            char = self.voc.numbers_to_formula_dict[str(number)]
-            if number in self.voc.arity0symbols:
-                #push scalar in the stack
-                stack.append(char)
+        if self.calcuusmode == 'vectorial':
+            for number in self.reversepolish:
+                #get character
+                char = self.voc.numbers_to_formula_dict[str(number)]
+                if number in self.voc.arity0symbols:
+                    #push scalar in the stack
+                    stack.append(char)
 
-            elif number in self.voc.arity1symbols:
-                sentence = stack[-1]
-                newstack = char + sentence + ')'
-                if len(stack) == 1:
-                    stack = [newstack]
-                else:
-                    stack = stack[:-1] + [newstack]
+                elif number in self.voc.arity1_novec:
+                    sentence = stack[-1]
+                    newstack = char + sentence + ')'
+                    if len(stack) == 1:
+                        stack = [newstack]
+                    else:
+                        stack = stack[:-1] + [newstack]
 
-            elif number in self.voc.arity2novec:
-                #for not too many useless parenthesis
-                if len(stack[-2]) == 1:
-                    addleft = stack[-2]
-                else:
-                    addleft = '(' + stack[-2] + ')'
+                elif number == self.voc.norm_number:
+                    sentence = stack[-1]
+                    newstack = char + sentence + ', axis = 1).reshape(SIZE,1)'
+                    if len(stack) == 1:
+                        stack = [newstack]
+                    else:
+                        stack = stack[:-1] + [newstack]
 
-                if len(stack[-1]) == 1:
-                    addright = stack[-1]
-                else:
-                    addright = '(' + stack[-1] + ')'
+                elif number in self.voc.arity2novec:
+                    #for not too many useless parenthesis
+                    if len(stack[-2]) == 1:
+                        addleft = stack[-2]
+                    else:
+                        addleft = '(' + stack[-2] + ')'
 
-                newstack = stack[:-2] + [addleft + char + addright]
-                stack = newstack
+                    if len(stack[-1]) == 1:
+                        addright = stack[-1]
+                    else:
+                        addright = '(' + stack[-1] + ')'
 
-            elif number in self.voc.arity2_vec: #c'est wedge et dot : on veut ecrire np.cross( a, b) ou np.vdot(a,b)
-                #for not too many useless parenthesis
-                if len(stack[-2]) == 1:
-                    addleft = stack[-2]
-                else:
-                    addleft = '(' + stack[-2] + ')'
+                    newstack = stack[:-2] + [addleft + char + addright]
+                    stack = newstack
 
-                if len(stack[-1]) == 1:
-                    addright = stack[-1]
-                else:
-                    addright = '(' + stack[-1] + ')'
+                elif number == self.voc.dot_number: #en array ca revient a np.sum(a * b, axis=1)
 
-                newstack = stack[:-2] + [char+addleft+','+ addright+ ')']
-                stack = newstack
+                    if len(stack[-2]) == 1:
+                        addleft = stack[-2]
+                    else:
+                        addleft = '(' + stack[-2] + ')'
 
-            elif number == self.voc.true_zero_number:
-                stack.append(char)
+                    if len(stack[-1]) == 1:
+                        addright = stack[-1]
+                    else:
+                        addright = '(' + stack[-1] + ')'
 
-            elif number == self.voc.neutral_element:
-                stack.append(char)
+                    newstack = stack[:-2] + ['np.sum(' + addleft + '*' + addright+ ', axis = 1)']
+                    stack = newstack
 
-            elif number == self.voc.infinite_number:
-                stack.append(char)
+                elif number == self.voc.wedge_number: #c'est np.cross(a, b)
+                    if len(stack[-2]) == 1:
+                        addleft = stack[-2]
+                    else:
+                        addleft = '(' + stack[-2] + ')'
 
-        #might happen if first symbol is 1 ('halt')
-        if len(stack) == 0:
-            formula = ''
+                    if len(stack[-1]) == 1:
+                        addright = stack[-1]
+                    else:
+                        addright = '(' + stack[-1] + ')'
+
+                    newstack = stack[:-2] + [char+addleft+','+ addright+ ')']
+                    stack = newstack
+
+                elif number == self.voc.true_zero_number:
+                    stack.append(char)
+
+                elif number == self.voc.neutral_element:
+                    stack.append(char)
+
+                elif number == self.voc.infinite_number:
+                    stack.append(char)
+
+            #might happen if first symbol is 1 ('halt')
+            if len(stack) == 0:
+                formula = ''
+            else:
+                formula = stack[0]
+
+            #print('----------')
+            #print(formula)
+            return formula
+
         else:
-            formula = stack[0]
+            for number in self.reversepolish:
+                # get character
+                char = self.voc.numbers_to_formula_dict[str(number)]
+                if number in self.voc.arity0symbols:
+                    # push scalar in the stack
+                    stack.append(char)
 
-        #print('----------')
-        #print(formula)
-        return formula
+                elif number in self.voc.arity1symbols:
+                    sentence = stack[-1]
+                    newstack = char + sentence + ')'
+                    if len(stack) == 1:
+                        stack = [newstack]
+                    else:
+                        stack = stack[:-1] + [newstack]
 
+                elif number in self.voc.arity2symbols:
+                    # for not too many useless parenthesis
+                    if len(stack[-2]) == 1:
+                        addleft = stack[-2]
+                    else:
+                        addleft = '(' + stack[-2] + ')'
+
+                    if len(stack[-1]) == 1:
+                        addright = stack[-1]
+                    else:
+                        addright = '(' + stack[-1] + ')'
+
+                    newstack = stack[:-2] + [addleft + char + addright]
+                    stack = newstack
+
+                elif number == self.voc.true_zero_number:
+                    stack.append(char)
+
+                elif number == self.voc.neutral_element:
+                    stack.append(char)
+
+                elif number == self.voc.infinite_number:
+                    stack.append(char)
+
+            # might happen if first symbol is 1 ('halt')
+            if len(stack) == 0:
+                formula = ''
+            else:
+                formula = stack[0]
+
+            return formula
 
 # ---------------------------------------------------------------------------- #
     def convert_to_NN_input(self):

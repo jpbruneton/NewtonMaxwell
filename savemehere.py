@@ -30,7 +30,7 @@ class Game:
         self.maxL = voc.maximal_size
         if state is None:
             self.stateinit = []
-            self.state = State(voc, self.stateinit, self.calculus_mode)
+            self.state = State(voc, self.stateinit)
         else:
             self.state = state
 
@@ -62,11 +62,8 @@ class Game:
         # on doit faire les deux en meme temps car A + A en vecteur reduit de 1; dc faut savoir si les + ou - agissent sur deux vec ou non
 
         for char in self.state.reversepolish:
-            if char == self.voc.terminalsymbol:
-                pass
-
             # arity 0
-            elif char in self.voc.arity0symbols:
+            if char in self.voc.arity0symbols:
                 if char in self.voc.arity0_vec:
                     vec_number+=1
                     stack.append(1)
@@ -147,6 +144,9 @@ class Game:
                 stack = stack[:-2] + toadd
 
 
+        print('avec le state', self.state.reversepolish, self.state.formulas)
+        print('jai', can_be_terminated, vec_number, stack)
+
         return can_be_terminated, vec_number, stack
 
 
@@ -162,13 +162,11 @@ class Game:
             allowedchars = self.voc.arity0symbols #start either with a vec or a scalar
 
         else:
-
             # check if already terminated
             if self.state.reversepolish[-1] == self.voc.terminalsymbol or space_left == 0:
                 allowedchars = []
 
             else:
-
                 can_be_terminated, vec_number, stack = self.from_rpn_to_critical_info()
                 info = [self.state.formulas, can_be_terminated, vec_number, stack]
 
@@ -190,14 +188,11 @@ class Game:
                                 allowedchars = [self.voc.multnumber]  # si last are q E ; si c'est E q : / autorisé aussi mais enfin ca revient au meme
                             elif stack[-2:] == [1, 0]:
                                 allowedchars = [self.voc.multnumber, self.voc.divnumber]
+                            elif stack[-2:] == [1, 1]:  # A wedge A, A+A ou A -A
+                                allowedchars = [self.voc.wedge_number, self.voc.plusnumber, self.voc.minusnumber]
                             else:
                                 print('cas non prevu', info)
                                 raise ValueError
-
-                        elif vec_number ==2:
-                            if stack[-2:] == [1, 1]:  # A wedge A, A+A ou A -A
-                                allowedchars = [self.voc.wedge_number, self.voc.plusnumber, self.voc.minusnumber]
-
                     else:
                         print('bug : cant terminate', info)
                         raise ValueError
@@ -269,80 +264,68 @@ class Game:
                             print('impossible n est ce pas?', info)
                             raise ValueError
 
-                # -------------
-                elif space_left >= 3: #cas general
-                    t = can_be_terminated - 1  # this equals to the number of operators required
-                    nu = vec_number - 1  # number of extra vectors : if >=1 : must reduce the number of vectors
-                    p = space_left
-                    allowedchars = []
-                    if nu == 0 and t == 0:
-                        allowedchars = [self.voc.terminalsymbol]
+                    # -------------
+                    elif space_left >= 3: #cas general
 
-                    if p < t:
-                        print('on ne pouura pas termminer à terme : shd never happen', info)
-                        raise ValueError
+                        t = can_be_terminated - 1 # this equals to the number of operators required
+                        nu = vec_number -1 # number of extra vectors : if >=1 : must reduce the number of vectors
+                        p = space_left
 
-                    elif p == t: # t operator required dans t space left : only operators allowed here
-                        if nu == -1:
-                            print('on ne pouura pas termminer à terme avec une expression vectorielle : shd never happen', info)
+                        if p <= t:
+                            print('on ne pouura pas termminer à terme : shd never happen', info)
                             raise ValueError
-                        elif nu >= 0:
-                            #completion tjs possible : on ajoute tout operatuer compatible avec le stack
-                            lasts = stack[-2:]
-                            if lasts == [0,0]:
-                                allowedchars += self.voc.arity2novec
-                            elif lasts == [0,1]:
-                                allowedchars += [self.voc.multnumber]
-                            elif lasts == [1, 0]:
-                                allowedchars += [self.voc.multnumber, self.voc.divnumber]
-                            elif lasts == [1,1] and nu <=1:
-                                allowedchars += [self.voc.plusnumber, self.voc.minusnumber, self.voc.wedge_number]
-                            else:
-                                allowedchars += [self.voc.dot_number, self.voc.plusnumber, self.voc.minusnumber, self.voc.wedge_number]
 
-                    elif p == t+1:
-                        #pas assez de place pour ajouter un scal cqr il requierera aussi un op, mais les fonctions, oui, y compris la norme si vec es t plus grand strict que 1
-                        if stack[-1] == 0 and self.getnumberoffunctions() < config.MAX_DEPTH:
-                            allowedchars += self.voc.arity1_novec
-                        elif stack[-1] == 1 and nu >=1 and self.getnumberoffunctions() < config.MAX_DEPTH: #todo ou >0?
-                            allowedchars += [self.voc.norm_number]
-                        #op aussi autorisés of course
-                        lasts = stack[-2:]
-                        if lasts == [0, 0]:
-                            allowedchars += self.voc.arity2novec
-                        if lasts == [0, 1]:
-                            allowedchars += [self.voc.multnumber]
-                        if lasts == [1, 0]:
-                            allowedchars += [self.voc.multnumber, self.voc.divnumber]
-                        if lasts == [1, 1]:
-                            allowedchars += [self.voc.plusnumber, self.voc.minusnumber,
-                                             self.voc.wedge_number]
-                        if lasts == [1,1] and nu >=2 and self.getnumberoffunctions() < config.MAX_DEPTH:
-                            allowedchars+= [self.voc.dot_number]
+                        elif p == t: # t operator required dans t space left : only operators allowed here
+                            if nu == -1:
+                                print('on ne pouura pas termminer à terme avec une expression vectorielle : shd never happen', info)
+                                raise ValueError
+                            elif nu >= 0:
+                                #completion tjs possible : on ajoute tout operatuer compatible avec le stack
+                                lasts = stack[-2:]
+                                if lasts == [0,0]:
+                                    allowedchars = self.voc.arity2novec
+                                elif lasts == [0,1]:
+                                    allowedchars = [self.voc.multnumber]
+                                elif lasts == [1, 0]:
+                                    allowedchars = [self.voc.multnumber, self.voc.divnumber]
+                                else:
+                                    allowedchars = [self.voc.dot_number, self.voc.plusnumber, self.voc.minusnumber, self.voc.wedge_number]
 
-                    else : #on peut tout ajouter mais on enforce d'abord un vec si y en a pas
-                        if nu==-1:
-                            allowedchars  += self.voc.arity0_vec
-                        elif nu >= 0:
+                        elif p == t+1:
+                            #pas assez de place pour ajouter un scal cqr il requierera aussi un op, mais les fonctions, oui, y compris la norme si vec es t plus grand strict que 1
+                            if stack[-1] == 0:
+                                allowedchars = self.voc.arity1_novec
+                            elif stack[-1] == 1 and nu >0:
+                                allowedchars = [self.voc.norm_number]
 
-                            allowedchars += self.voc.arity0symbols
-                            if stack[-1] == 0 and self.getnumberoffunctions() < config.MAX_DEPTH:
-                                allowedchars+= self.voc.arity1_novec
-                            if stack[-1] == 1 and nu>=1 and self.getnumberoffunctions() < config.MAX_DEPTH:
-                                allowedchars += [self.voc.norm_number]
+                        else : #on peut tout ajouter mais on enforce d'abord un vec si y en a pas
+                            if nu==-1:
+                                allowedchars  = self.voc.arity1_vec
+                            elif nu >= 0:
+                                #on peut terminer maybe
+                                allowedchars = []
+                                if nu == 0 and t == 0:
+                                    allowedchars = [self.voc.terminalsymbol]
+                                #et dans tous les cas:
+                                allowedchars += self.voc.arity0symbols
+                                if stack[-1] == 0:
+                                    allowedchars+= self.voc.arity1_novec
+                                if stack[-1] == 1:
+                                    allowedchars += [self.voc.norm_number]
 
-                            lasts = stack[-2:]
-                            if lasts == [0, 0]:
-                                allowedchars += self.voc.arity2novec
-                            if lasts == [0, 1]:
-                                allowedchars += [self.voc.multnumber]
-                            if lasts == [1, 0]:
-                                allowedchars += [self.voc.multnumber, self.voc.divnumber]
-                            if lasts == [1,1]:
-                                allowedchars += [self.voc.dot_number, self.voc.plusnumber, self.voc.minusnumber,
-                                                self.voc.wedge_number]
+                                lasts = stack[-2:]
+                                if lasts == [0, 0]:
+                                    allowedchars += self.voc.arity2novec
+                                if lasts == [0, 1]:
+                                    allowedchars += [self.voc.multnumber]
+                                if lasts == [1, 0]:
+                                    allowedchars += [self.voc.multnumber, self.voc.divnumber]
+                                if lasts == [1,1]:
+                                    allowedchars += [self.voc.dot_number, self.voc.plusnumber, self.voc.minusnumber,
+                                                    self.voc.wedge_number]
 
-                        #todo implement max depth encore to do
+                            #todo implement max depth encore to do
+
         return allowedchars
     # ---------------------------------------------------------------------------- #
     def allowedmoves_novectors(self):
@@ -448,7 +431,7 @@ class Game:
         nextstate = copy.deepcopy(self.state.reversepolish)
         nextstate.append(nextchar)
 
-        return State(self.voc, nextstate, self.calculus_mode)
+        return State(self.voc, nextstate)
 
     # ---------------------------------------------------------------------------- #
     def takestep(self, nextchar):
@@ -463,6 +446,7 @@ class Game:
             else:
                 return 0
         if self.calculus_mode == 'vectorial':
+            print('checkin terminal, ignore')
             if self.allowedmoves_vectorial() == []:
                 return 1
             else:
@@ -553,8 +537,6 @@ def randomeqs(voc):
             allowed_moves = game.allowedmoves_vectorial()
             nextchar = np.random.choice(allowed_moves)
             game.takestep(nextchar)
-
-    print('finally', game.state.formulas)
     if config.use_simplif:
         simplestate = simplif_eq(voc, game.state)
         simplegame = Game(voc, simplestate)
@@ -564,8 +546,12 @@ def randomeqs(voc):
     else:
         return game
 
+
+
+
+
 # ---------------------------------------------------------
-def simplif_eq(voc, state, calculus_mode):
+def simplif_eq(voc, state):
     count = 0
     change = 1
 
@@ -574,7 +560,7 @@ def simplif_eq(voc, state, calculus_mode):
         change, rpn = state.one_simplif()
         #print('onesimplif', change, rpn)
 
-        state = State(voc, rpn, calculus_mode)
+        state = State(voc, rpn)
 
         count += 1
         if count > 1000:
@@ -584,9 +570,9 @@ def simplif_eq(voc, state, calculus_mode):
 
 # ---------------------------------------------------------------------------- #
 # takes a non maximal size and completes it with random + simplify it with my rules
-def complete_eq_with_random(voc, state, calculus_mode):
+def complete_eq_with_random(voc, state):
     if state.reversepolish[-1] == voc.terminalsymbol:
-        newstate = State(voc, state.reversepolish[:-1], calculus_mode)
+        newstate = State(voc, state.reversepolish[:-1])
     else :
         newstate = copy.deepcopy(state)
     game = Game(voc, newstate)

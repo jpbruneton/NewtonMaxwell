@@ -123,7 +123,10 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     arity1symbols = tuple([i for i in range(2 + a0, 2 + a0 + a1)])
     arity2symbols = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2)])
     arity2symbols_no_power = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2 -1)])
-    arity2symbols_novec = tuple([x for x in arity2symbols if x not in arity2_vec])
+    if calculus_mode == 'vectorial':
+        arity2symbols_novec = tuple([x for x in arity2symbols if x not in arity2_vec])
+    else:
+        arity2symbols_novec = arity2symbols
     norm_number = 2+a0+a1-1
     #dont change order of operations!
     plusnumber = 2 + a0 + a1

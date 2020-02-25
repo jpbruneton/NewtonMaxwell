@@ -138,7 +138,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 20
+        maximal_size = 15
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
 

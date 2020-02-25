@@ -174,7 +174,7 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
     binp, maxp,  derzero, derone, addrandom, voc = params
 
     if config.plot:
-        formm1 = 'A*f0/((f0**2+f1**2)**(3/2))'
+        formm1 = 'A*A*F0/((la.norm(F0, axis =1).reshape(5000,1)**(3)))'
 
         scalar_numbers, alla, rms = game_env.game_evaluate([1], formm1, voc, train_targets, 'train', u, look_for)
         print('donne:', scalar_numbers, alla, rms)

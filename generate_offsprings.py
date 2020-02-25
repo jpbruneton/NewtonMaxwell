@@ -13,13 +13,14 @@ import game_env
 # deepcopy required since state.reversepolish is a list : mutable
 
 class generate_offsprings():
-    def __init__(self, delete_ar1_ratio, p_mutate, p_cross, maximal_size, voc):
+    def __init__(self, delete_ar1_ratio, p_mutate, p_cross, maximal_size, voc, calculus_mode):
         self.usesimplif = config.use_simplif
         self.p_mutate = p_mutate
         self.delete_ar1_ratio = delete_ar1_ratio
         self.p_cross = p_cross
         self.maximal_size = maximal_size
         self.voc = voc
+        self.calculus_mode = calculus_mode
 
 
     # ---------------------------------------------------------------------------- #
@@ -61,11 +62,11 @@ class generate_offsprings():
         if random.random() < self.delete_ar1_ratio and char in self.voc.arity1symbols:
             #print('bf',state.formulas)
             newrpn = prev_rpn[:char_to_mutate] + prev_rpn[char_to_mutate + 1:]
-            newstate = State(self.voc, newrpn)
+            newstate = State(self.voc, newrpn, self.calculus_mode)
             #print('af', newstate.formulas)
         else:  # or mutate
             prev_rpn[char_to_mutate] = newchar
-            newstate = State(self.voc, prev_rpn)
+            newstate = State(self.voc, prev_rpn, self.calculus_mode)
 
         # -------- return the new state:
 
@@ -91,7 +92,9 @@ class generate_offsprings():
 
         for char in cut_state:
             # arity 0
-            if char in self.voc.arity0symbols:
+            if char == self.voc.terminalsymbol:
+                pass
+            elif char in self.voc.arity0symbols:
                 if char in self.voc.arity0_vec:
                     stack.append(1)
                 else:
@@ -103,12 +106,12 @@ class generate_offsprings():
                     if stack[-1] == 1:
                         stack = stack[:-1] + [0]
                     else:
-                        print('fixbug: cant take the norm of a scalar')
+                        print('ofixbug: cant take the norm of a scalar')
                         raise ValueError
                 # if function like cos : stack doesnt change but for debug:
                 else:
                     if stack[-1] != 0:
-                        print('cant take cosine of a vector (no pointwise operations allowed by choice)')
+                        print('ocant take cosine of a vector (no pointwise operations allowed by choice)')
                         raise ValueError
 
             else:  # arity 2
@@ -120,7 +123,7 @@ class generate_offsprings():
                     elif lasts == [0, 0]:
                         toadd = [0]
                     else:
-                        print('fixbug: scalar cant be divided by vector; or vector by vector')
+                        print('ofixbug: scalar cant be divided by vector; or vector by vector')
                         raise ValueError
 
                 elif char == self.voc.multnumber:
@@ -129,14 +132,14 @@ class generate_offsprings():
                     elif lasts == [0, 1] or lasts == [1, 0]:
                         toadd = [1]
                     else:
-                        print('fixbug: vectors cant be multiplied')
+                        print('ofixbug: vectors cant be multiplied')
                         raise ValueError
 
                 elif char == self.voc.plusnumber or char == self.voc.minusnumber:
                     if lasts == [0, 0]:
                         toadd = [0]
                     elif lasts == [0, 1] or lasts == [1, 0]:
-                        print('fixbug: scalars cant be added to a vector')
+                        print('ofixbug: scalars cant be added to a vector')
                         raise ValueError
                     else:  # add two vectors : reduce n_vec one unit
                         toadd = [1]
@@ -145,21 +148,21 @@ class generate_offsprings():
                     if lasts == [0, 0]:
                         toadd = [0]
                     else:
-                        print('bugfixing : power not authorized here')
+                        print('obugfixing : power not authorized here')
                         raise ValueError
 
                 elif char == self.voc.wedge_number:
                     if lasts == [1, 1]:
                         toadd = [1]
                     else:
-                        print('bug : wedge not allowed')
+                        print('obug : wedge not allowed')
                         raise ValueError
 
                 elif char == self.voc.dot_number:
                     if lasts == [1, 1]:
                         toadd = [0]
                     else:
-                        print('bug : dot product not allowed')
+                        print('obug : dot product not allowed')
                         raise ValueError
 
                 # update stack for case arity 2
@@ -172,7 +175,6 @@ class generate_offsprings():
         L = len(state.reversepolish)
         if L <= 1:
             return False, state
-
         # else
         prev_rpn = copy.deepcopy(state.reversepolish)
 
@@ -182,6 +184,7 @@ class generate_offsprings():
             char_to_mutate = np.random.randint(0, L)
 
         char = prev_rpn[char_to_mutate]
+        print('entering mut', prev_rpn, state.formulas, char_to_mutate, char)
 
         # ------ arity 0 -------
 
@@ -224,11 +227,19 @@ class generate_offsprings():
         if random.random() < self.delete_ar1_ratio and char in self.voc.arity1_novec:
             # print('bf',state.formulas)
             newrpn = prev_rpn[:char_to_mutate] + prev_rpn[char_to_mutate + 1:]
-            newstate = State(self.voc, newrpn)
+            newstate = State(self.voc, newrpn, self.calculus_mode)
             # print('af', newstate.formulas)
         else:  # or mutate
             prev_rpn[char_to_mutate] = newchar
-            newstate = State(self.voc, prev_rpn)
+            newstate = State(self.voc, prev_rpn, self.calculus_mode)
+
+
+        # debug check if mutated is ok
+        game = Game(self.voc, newstate)
+        print(newstate.reversepolish, newstate.formulas)
+        a,b,c = game.from_rpn_to_critical_info()
+        if a != 1 or b!= 1:
+            print('ici mut fausse', a, b, c, prev_rpn, char_to_mutate, char, newchar)
 
         # -------- return the new state:
 
@@ -327,12 +338,12 @@ class generate_offsprings():
             return False, prev_state1, prev_state2
 
         #returns the new states
-        state1 = State(self.voc, rpn1)
-        state2 = State(self.voc, rpn2)
+        state1 = State(self.voc, rpn1, self.calculus_mode)
+        state2 = State(self.voc, rpn2, self.calculus_mode)
 
         if self.usesimplif:
-            state1 = game_env.simplif_eq(self.voc, state1)
-            state2 = game_env.simplif_eq(self.voc, state2)
+            state1 = game_env.simplif_eq(self.voc, state1, self.calculus_mode)
+            state2 = game_env.simplif_eq(self.voc, state2, self.calculus_mode)
 
             # game1 = Game(self.voc, state1)
             # game1.simplif_eq()
@@ -383,6 +394,21 @@ class generate_offsprings():
 
         game1 = Game(self.voc, prev_state1)
         game2 = Game(self.voc, prev_state2)
+
+        print('entering cross')
+        a, b, c = game1.from_rpn_to_critical_info()
+        if a != 1 or b != 1:
+            print('inittial state 1', prev_state1.reversepolish, game1.state.formulas)
+            raise ValueError
+
+        a, b, c = game2.from_rpn_to_critical_info()
+        if a != 1 or b != 1:
+            print('ici cross entering faux 2', a, b, c)
+            print('inittial state 2', prev_state2.reversepolish, game2.state.formulas)
+            raise ValueError
+
+        print('entering states for crossover are ok')
+
         # if game1.getnumberoffunctions()>config.MAX_DEPTH:
         #    print('ici', game1.state.formulas)
 
@@ -424,17 +450,25 @@ class generate_offsprings():
             node1 = ast1.from_ast_get_node(ast1.topnode, getnonleafnode1)[0]
             node2 = ast2.from_ast_get_node(ast2.topnode, getnonleafnode2)[0]
 
-            before_swap_rpn1 = ast1.from_ast_to_rpn(ast1.topnode)
-            before_swap_rpn2 = ast2.from_ast_to_rpn(ast2.topnode)
+            before_swap_rpn1 = ast1.from_ast_to_rpn(node1)
+            before_swap_rpn2 = ast2.from_ast_to_rpn(node2)
 
-            bfstate1 = State(self.voc, before_swap_rpn1)
-            bfstate2 = State(self.voc, before_swap_rpn2)
+            bfstate1 = State(self.voc, before_swap_rpn1, self.calculus_mode)
+            bfstate2 = State(self.voc, before_swap_rpn2, self.calculus_mode)
 
             bef_game1 = Game(self.voc, bfstate1)
             bef_game2 = Game(self.voc, bfstate2)
+            print('')
+            print('inittial state 1', prev_state1.reversepolish, game1.state.formulas)
+            print('inittial state 2', prev_state2.reversepolish, game2.state.formulas)
+
+            print('substate1', bfstate1.reversepolish, bfstate1.formulas)
+            print('substate2', bfstate2.reversepolish, bfstate2.formulas)
+
             _, vec_number1, _ = bef_game1.from_rpn_to_critical_info()
             _, vec_number2, _ = bef_game2.from_rpn_to_critical_info()
-
+            print('vec numbers', vec_number1, vec_number2)
+            print('')
 
             if vec_number1 == vec_number2:
                 # swap parents and children == swap subtrees
@@ -467,8 +501,8 @@ class generate_offsprings():
             return False, prev_state1, prev_state2
 
         # returns the new states
-        state1 = State(self.voc, rpn1)
-        state2 = State(self.voc, rpn2)
+        state1 = State(self.voc, rpn1, self.calculus_mode)
+        state2 = State(self.voc, rpn2, self.calculus_mode)
 
         if self.usesimplif:
             state1 = game_env.simplif_eq(self.voc, state1)
@@ -484,6 +518,22 @@ class generate_offsprings():
         game1 = Game(self.voc, state1)
         game2 = Game(self.voc, state2)
         toreturn = []
+
+        print('after swap', game1.state.reversepolish, game1.state.formulas)
+        print('after swap', game2.state.reversepolish, game2.state.formulas)
+        print('-----------------')
+
+        # debug crossovers
+
+        a, b, c = game1.from_rpn_to_critical_info()
+        if a != 1 or b != 1:
+            print('ici cross faux 1', a, b, c)
+            raise ValueError
+
+        a, b, c = game2.from_rpn_to_critical_info()
+        if a != 1 or b != 1:
+            print('ici cross faux 2', a, b, c)
+            raise ValueError
 
         # crossover can lead to true zero division thus :
         if self.voc.infinite_number in state1.reversepolish:
