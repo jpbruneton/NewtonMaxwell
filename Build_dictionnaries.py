@@ -9,8 +9,8 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
         my_dic_scalar_number = ['A']
         my_dic_vec_number = []
     else:
-        my_dic_scalar_number = ['A_scal'] #we need both e.g. F = q v^B in Lorentz force : q is a one_scalar
-        my_dic_vec_number = ['A_vec']
+        my_dic_scalar_number = ['A'] #we need both e.g. F = q v^B in Lorentz force : q is a one_scalar
+        my_dic_vec_number = ['B']
 
     my_dic_special_scalar = []
     if use_distance:
@@ -60,7 +60,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     # not clear if I allow point wise operations of cos( vec(x)) as hadamard like structure or use only on true scalars?
     # decide later : for now default is cos can only apply on a true scalar like :  A_vec (scalarproduct) F_2
     if calculus_mode == 'vectorial':
-        my_dic_vectorial_functions = ['norm('] # forms from E -> R
+        my_dic_vectorial_functions = ['la.norm('] # forms from E -> R
     else:
         my_dic_vectorial_functions = []
 
@@ -69,7 +69,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     my_dic_power = ['**']
 
     if calculus_mode == 'vectorial':
-        my_dic_vec_operators = ['dot', 'wedge'] #operators from E*E -> R
+        my_dic_vec_operators = ['np.vdot(', 'np.cross('] #operators from E*E -> R
     else:
         my_dic_vec_operators = []
 
@@ -95,6 +95,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
         vectorial_numbers.extend([i for i in range(index2, 2 + len(arity0dic))])
         arity0_vec = tuple(deepcopy(vectorial_numbers))
 
+    arity0_novec = (index0, index0+1+len(my_dic_vec_number)+len(my_dic_special_scalar))
     pure_numbers = tuple([i for i in range(index0, index1)])
     var_numbers = tuple([i for i in range(index1, index2)])
 
@@ -102,12 +103,14 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     arity1dic = my_dic_scalar_functions + my_dic_vectorial_functions
     arity2dic = my_dic_scalar_operators + my_dic_vec_operators + my_dic_power
     a0, a1, a2  = len(arity0dic), len(arity1dic), len(arity2dic)
-    if calculus_mode == 'vectorial':
+    arity_1_novec = [i for i in range(2 + a0, 2 + a0 + len(my_dic_scalar_functions))]
 
+    if calculus_mode == 'vectorial':
         vectorial_numbers.extend([i for i in range(2+a0+len(my_dic_scalar_functions), 2+a0+a1)])
         arity1_vec = 2+a0+len(my_dic_scalar_functions)
         vectorial_numbers.extend([i for i in range(2+a0+a1+len(my_dic_scalar_operators), 2+a0+a1+len(my_dic_scalar_operators) + len(my_dic_vec_operators))])
         arity2_vec = tuple([i for i in range(2+a0+a1+len(my_dic_scalar_operators), 2+a0+a1+len(my_dic_scalar_operators) + len(my_dic_vec_operators))])
+
     if calculus_mode == 'vectorial':
         vectorial_numbers = tuple(vectorial_numbers)
         print(vectorial_numbers)
@@ -147,10 +150,21 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
 
     terminalsymbol = 1
 
+    if True:
+        all = [numbers_to_formula_dict, arity0symbols,
+               arity1symbols, arity2symbols, true_zero_number, neutral_element, \
+           infinite_number, terminalsymbol, pure_numbers,
+               arity2symbols_no_power, power_number, var_numbers, \
+           plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber,
+               vectorial_numbers, \
+           arity0_vec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec]
+        for elem in all:
+            print(elem)
 
+    print(arity0_novec)
 
     return numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
            infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
            plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
-           arity0_vec, arity1_vec, arity2_vec, arity2symbols_novec
+           arity0_vec, arity0_novec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec
 

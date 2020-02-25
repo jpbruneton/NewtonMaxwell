@@ -67,6 +67,16 @@ class Target():
         return [t, target_functions, first_derivatives, second_derivatives]
 
 
+#{'1': 'halt', '2': 'A_scal',
+# '3': 'A_vec', '4': 'x0', '5': 'F0', '6': 'd_x0_F0',
+# '7': 'np.sin(', '8': 'np.sqrt(', '9': 'np.exp(', '10': 'np.log(',
+# '11': 'norm(',
+# '12': '+', '13': '-',
+# '14': '*', '15': '/',
+# '16': 'dot',
+# '17': 'wedge',
+# '18': '**',
+# '19': 'zero', '20': 'neutral', '21': 'infinity'}
 
 class Voc():
     def __init__(self, u, all_targets_name, calculus_mode, maximal_size, look_for,expert_knowledge):
@@ -79,7 +89,7 @@ class Voc():
         self.numbers_to_formula_dict, self.arity0symbols, self.arity1symbols, self.arity2symbols, self.true_zero_number, self.neutral_element, \
         self.infinite_number, self.terminalsymbol, self.pure_numbers, self.arity2symbols_no_power, self.power_number, self.var_numbers, \
         self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.norm_number, self.dot_number, self.wedge_number, \
-        self.vectorial_numbers, self.arity0_vec, self.arity1_vec, self.arity2_vec, self.arity2novec\
+        self.vectorial_numbers, self.arity0_vec, self.arity0_novec, self.arity1_vec, self.arity2_vec, self.arity2novec, self.arity1_novec\
             = Build_dictionnaries.get_dic(self.n_targets, self.all_targets_name, u, self.calculus_mode, self.look_for, self.expert_knowledge)
 
 

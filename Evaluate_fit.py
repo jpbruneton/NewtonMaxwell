@@ -15,6 +15,7 @@ import config
 import copy
 import cma
 from scipy import interpolate
+from numpy import linalg as la
 
 #import matplotlib.pyplot as plt
 
@@ -59,20 +60,32 @@ class Evaluatefit:
     def rename_formulas(self):
         ''' index all the scalar 'A' by a A1, A2, etc, rename properly the differentials, and finally resize as it must '''
 
-        neweq = ''
-
+        #print('entering')
+        #print(self.formulas)
         self.scalar_numbers = self.formulas.count('A')
-        if self.scalar_numbers == 1: #CMAES doent work with only one scalar
+        self.v_numbers = self.formulas.count('B')
+
+        if self.scalar_numbers == 1 and self.calculus_mode == 'scalar': #cmaes must be at least 2 dim
             self.formulas += '+ A'
             self.scalar_numbers = 2
 
+        neweq1 = ''
         A_count = 0
         for char in self.formulas:
             if char == 'A':
-                neweq += 'A[' + str(A_count) + ']'
+                neweq1 += 'S[' + str(A_count) + ']'
                 A_count += 1
             else:
-                neweq += char
+                neweq1 += char
+
+        neweq = ''
+        B_count = 0
+        for char in neweq1:
+            if char == 'B':
+                neweq += 'V[' + str(B_count) + ']'
+                B_count += 1
+            else:
+                neweq+=char
 
         highest_der = 0
         for u in range(1,self.maxder):
@@ -82,8 +95,14 @@ class Evaluatefit:
         if highest_der != 0 :
             for u in range(1, highest_der+1):
                 for v in range(len(self.train_targets)):
-                    toreplace = 'd'*u + '_x0'*u + '_f'+str(v)
-                    replace_by = 'f'+'p'*u+ str(v)
+                    if self.calculus_mode == 'scalar':
+                        toreplace = 'd'*u + '_x0'*u + '_f'+str(v)
+                        replace_by = 'f' + 'p' * u + str(v)
+
+                    else:
+                        toreplace = 'd'*u + '_x0'*u + '_F'+str(v)
+                        replace_by = 'F' + 'p' * u + str(v)
+
                     neweq = neweq.replace(toreplace, replace_by)
 
         string_to_replace = 'x0'
@@ -91,13 +110,25 @@ class Evaluatefit:
         neweq = neweq.replace(string_to_replace, replace_by)
 
         for u in range(len(self.train_targets)):
-            string_to_replace = 'f'+str(u)
-            replace_by = 'f['+str(u)+'][:]'
+            if self.calculus_mode == 'scalar':
+                string_to_replace = 'f'+str(u)
+                replace_by = 'f['+str(u)+'][:]'
+            else:
+                string_to_replace = 'F' + str(u)
+                replace_by = 'F[' + str(u) + '][:]'
+
             neweq = neweq.replace(string_to_replace, replace_by)
-            string_to_replace = 'fp' + str(u)
-            replace_by = 'fp[' + str(u) + '][:]'
+
+            if self.calculus_mode == 'scalar':
+                string_to_replace = 'fp' + str(u)
+                replace_by = 'fp[' + str(u) + '][:]'
+            else:
+                string_to_replace = 'Fp' + str(u)
+                replace_by = 'Fp[' + str(u) + '][:]'
             neweq = neweq.replace(string_to_replace, replace_by)
+
         self.formulas = neweq
+        print('rename', neweq)
     # ---------------------------------------------------------------------------- #
     def formula_eval(self, x, f, fp, A) :
         try:

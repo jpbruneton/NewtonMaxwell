@@ -75,7 +75,7 @@ class State:
                 else:
                     stack = stack[:-1] + [newstack]
 
-            elif number in self.voc.arity2symbols:
+            elif number in self.voc.arity2novec:
                 #for not too many useless parenthesis
                 if len(stack[-2]) == 1:
                     addleft = stack[-2]
@@ -88,6 +88,21 @@ class State:
                     addright = '(' + stack[-1] + ')'
 
                 newstack = stack[:-2] + [addleft + char + addright]
+                stack = newstack
+
+            elif number in self.voc.arity2_vec: #c'est wedge et dot : on veut ecrire np.cross( a, b) ou np.vdot(a,b)
+                #for not too many useless parenthesis
+                if len(stack[-2]) == 1:
+                    addleft = stack[-2]
+                else:
+                    addleft = '(' + stack[-2] + ')'
+
+                if len(stack[-1]) == 1:
+                    addright = stack[-1]
+                else:
+                    addright = '(' + stack[-1] + ')'
+
+                newstack = stack[:-2] + [char+addleft+','+ addright+ ')']
                 stack = newstack
 
             elif number == self.voc.true_zero_number:
@@ -105,7 +120,8 @@ class State:
         else:
             formula = stack[0]
 
-
+        #print('----------')
+        #print(formula)
         return formula
 
 
@@ -132,3 +148,5 @@ class State:
         return nninput
 
 # =============================== END CLASS: State ================================ #
+
+

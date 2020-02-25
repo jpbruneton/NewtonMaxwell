@@ -142,7 +142,5 @@ if __name__ == '__main__':
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
 
-        voc = params[-1]
-        game_env.randomeqs(voc)
 
-        #run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)
+        run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

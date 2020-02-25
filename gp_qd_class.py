@@ -119,8 +119,11 @@ class GP_QD():
 
                 if u <= self.p_mutate:
                     count += 1
+                    if self.calculus_mode == 'scalar':
+                        s, mutatedstate = gp_motor.mutate(state)
+                    else:
+                        s, mutatedstate = gp_motor.vectorial_mutation(state)
 
-                    s, mutatedstate = gp_motor.mutate(state)
                     #if str(mutatedstate.reversepolish) not in alleqs:
                     newpool.append(mutatedstate)
 
@@ -129,7 +132,10 @@ class GP_QD():
 
                     index = np.random.randint(0, len(all_states))
                     otherstate = all_states[index]  # this might crossover with itself : why not!
-                    success, state1, state2 = gp_motor.crossover(state, otherstate)
+                    if self.calculus_mode == 'scalar':
+                        success, state1, state2 = gp_motor.crossover(state, otherstate)
+                    else:
+                        success, state1, state2 = gp_motor.vectorial_crossover(state, otherstate)
 
                     if success:
                         #if str(state1.reversepolish) not in alleqs:
