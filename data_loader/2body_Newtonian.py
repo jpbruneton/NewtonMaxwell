@@ -1,57 +1,90 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import animation
+import scipy as sci
 
-def f(y, t):
-    x1, y1, z1, x2, y2, z2, vx1, vy1, vz1, vx2, vy2, vz2 = y      # unpack current values of y
-    dist = np.sqrt((x1-x2)**2 +(y1-y2)**2 +(z1-z2)**2)
-    G = 6.67*1e-11
-    m2 = 1e30
-    m1 = 2e30
-    derivs = [vx1, vy1, vz1,  vx2, vy2, vz2, - G*m2*(x2 - x1)/dist**3, - G*m2*(y2 - y1)/dist**3, - G*m2*(z2 - z1)/dist**3,
-              G*m1*(x2 - x1)/dist**3, G*m1*(y2 - y1)/dist**3, - G*m1*(z2 - z1)/dist**3]    # list of dy/dt=f functions
+# from https://towardsdatascience.com/modelling-the-three-body-problem-in-classical-mechanics-using-python-9dc270ad7767
+#Define universal gravitation constant
+G=6.67408e-11 #N-m2/kg2
+#Reference quantities
+m_nd=1.989e+30 #kg #mass of the sun
+r_nd=5.326e+12 #m #distance between stars in Alpha Centauri
+v_nd=30000 #m/s #relative velocity of earth around the sun
+t_nd=79.91*365*24*3600*0.51 #s #orbital period of Alpha Centauri
+#Net constants
+K1=G*t_nd*m_nd/(r_nd**2*v_nd)
+K2=v_nd*t_nd/r_nd
+
+#Define masses
+m1=1.1 #Alpha Centauri A
+m2=0.907 #Alpha Centauri B
+#Define initial position vectors
+r1=[-0.5,0,0] #m
+r2=[0.5,0,0] #m
+#Convert pos vectors to arrays
+r1=sci.array(r1,dtype="float64")
+r2=sci.array(r2,dtype="float64")
+#Find Centre of Mass
+r_com=(m1*r1+m2*r2)/(m1+m2)
+#Define initial velocities
+v1=[0.01,0.01,0] #m/s
+v2=[-0.05,0,-0.1] #m/s
+#Convert velocity vectors to arrays
+v1=sci.array(v1,dtype="float64")
+v2=sci.array(v2,dtype="float64")
+#Find velocity of COM
+v_com=(m1*v1+m2*v2)/(m1+m2)
+
+#A function defining the equations of motion
+def TwoBodyEquations(w,t,G,m1,m2):
+    r1=w[:3]
+    r2=w[3:6]
+    v1=w[6:9]
+    v2=w[9:12]
+    r=sci.linalg.norm(r2-r1) #Calculate magnitude or norm of vector
+    dv1bydt=K1*m2*(r2-r1)/r**3
+    dv2bydt=K1*m1*(r1-r2)/r**3
+    dr1bydt=K2*v1
+    dr2bydt=K2*v2
+    r_derivs=sci.concatenate((dr1bydt,dr2bydt))
+    derivs=sci.concatenate((r_derivs,dv1bydt,dv2bydt))
     return derivs
 
+#Package initial parameters
+init_params=sci.array([r1,r2,v1,v2]) #create array of initial params
+init_params=init_params.flatten() #flatten array to make it 1D
+time_span=sci.linspace(0,8,5000) #8 orbital periods and 500 points
+#Run the ODE solver
+import scipy.integrate
+two_body_sol=sci.integrate.odeint(TwoBodyEquations,init_params,time_span,args=(G,m1,m2))
 
-# Initial values
-theta0 = 0.0     # initial angular displacement
-omega0 = 0.0     # initial angular velocity
+r1_sol=two_body_sol[:,:3]
+r2_sol=two_body_sol[:,3:6]
 
-# Bundle initial conditions for ODE solver
-y0 = [0, 1e4, 0, 0, -1e4, 0, 1e15, 0, 0, 0, 0, 0]
+#Create figure
+fig=plt.figure(figsize=(15,15))
+#Create 3D axes
+ax=fig.add_subplot(111,projection="3d")
+#Plot the orbits
+ax.plot(r1_sol[:,0],r1_sol[:,1],r1_sol[:,2],color="darkblue")
+ax.plot(r2_sol[:,0],r2_sol[:,1],r2_sol[:,2],color="tab:red")
+#Plot the final positions of the stars
+ax.scatter(r1_sol[-1,0],r1_sol[-1,1],r1_sol[-1,2],color="darkblue",marker="o",s=100,label="Alpha Centauri A")
+ax.scatter(r2_sol[-1,0],r2_sol[-1,1],r2_sol[-1,2],color="tab:red",marker="o",s=100,label="Alpha Centauri B")
+#Add a few more bells and whistles
+ax.set_xlabel("x-coordinate",fontsize=14)
+ax.set_ylabel("y-coordinate",fontsize=14)
+ax.set_zlabel("z-coordinate",fontsize=14)
+ax.set_title("Visualization of orbits of stars in a two-body system\n",fontsize=14)
+ax.legend(loc="upper left",fontsize=14)
 
-
-# Make time array for solution
-tStop = 2000.
-tInc = 1
-t = np.arange(0., tStop, tInc)
-
-# Call the ODE solver
-psoln = odeint(f, y0, t, args=())
-print(psoln.shape)
-
-# Plot results
-fig = plt.figure(1, figsize=(8,8))
-
-# Plot theta as a function of time
-ax1 = fig.add_subplot(311)
-ax1.plot(t, psoln[:,1])
-ax1.set_xlabel('time')
-ax1.set_ylabel('theta')
-
-# Plot omega as a function of time
-ax2 = fig.add_subplot(312)
-ax2.plot(t, psoln[:,1])
-ax2.set_xlabel('time')
-ax2.set_ylabel('omega')
-
-# Plot omega vs theta
-ax3 = fig.add_subplot(313)
-twopi = 2.0*np.pi
-ax3.plot(psoln[:,0]%twopi, psoln[:,1], '.', ms=1)
-ax3.set_xlabel('theta')
-ax3.set_ylabel('omega')
-ax3.set_xlim(0., twopi)
-
-plt.tight_layout()
 plt.show()
+
+data = np.transpose(np.array([time_span, r1_sol[:,0],r1_sol[:,1],r1_sol[:,2]]))
+np.savetxt('Newtonian2body_body1.csv', data, delimiter=',')
+
+data = np.transpose(np.array([time_span, r2_sol[:,0],r2_sol[:,1],r2_sol[:,2]]))
+np.savetxt('Newtonian2body_body2.csv', data, delimiter=',')

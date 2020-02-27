@@ -116,15 +116,22 @@ if __name__ == '__main__':
     if noprint:
         kill_print()
 
-    filenames_train = ['data_loader/kepler_1.csv']#,'data_loader/x2_train(t).csv']
-    filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
+
+    datasets = ['onebodyproblem', 'twobodyproblem']
+    set = datasets[1]
+    if set == 'onebodyproblem':
+        filenames_train = ['data_loader/kepler_1.csv']#,'data_loader/x2_train(t).csv']
+        filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
+    if set == 'twobodyproblem':
+        filenames_train = ['data_loader/Newtonian2body_body1.csv', 'data_loader/Newtonian2body_body2.csv']  # ,'data_loader/x2_train(t).csv']
+        filenames_test = ['data_loader/Newtonian2body_body1.csv', 'data_loader/Newtonian2body_body2.csv']  # ,'data_loader/x2_test(t).csv']
 
     #allow expert knowledge :
-    explicit_time_dependence = False
+    explicit_time_dependence_allowed = False
     no_first_derivatives = True
     use_distance = False
     planar_motion = True
-    expert_knowledge =[explicit_time_dependence, no_first_derivatives, use_distance, planar_motion]
+    expert_knowledge =[explicit_time_dependence_allowed, no_first_derivatives, use_distance, planar_motion]
 
     # -------------------------------- init targets
     calculus_modes = ['scalar', 'vectorial']

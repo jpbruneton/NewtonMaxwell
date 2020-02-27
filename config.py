@@ -47,11 +47,11 @@ def get_size(iteration):
     return size
 
 minrms = 10000000 # do not update the grid if rms is greater than this value
-qd_init_pool_size = 500
+qd_init_pool_size = 4000
 extendpoolfactor = 1.5
 #which_target = 'fig1-waveform-H_phase2_1.txt'
 
-verifonegivenfunction = False
+verifonegivenfunction = True
 tworunsineval = False
 popsize = '10'
 timelimit = '7*N'

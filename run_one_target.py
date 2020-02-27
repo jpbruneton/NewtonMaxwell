@@ -139,10 +139,10 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
     binp, maxp,  derzero, derone, addrandom, voc, max_norm, max_cross, max_dot = params
 
     if config.verifonegivenfunction:
-        formm1 = 'A*A*F0/((la.norm(F0, axis =1).reshape(5000,1)**(3)))'
+        formm1 = 'A*(F0-F1)/((la.norm((F0-F1), axis =1).reshape(5000,1)**(3)))'
         scalar_numbers, alla, rms = game_env.game_evaluate([1], formm1, voc, train_targets, 'train', u, look_for)
         print('donne:', scalar_numbers, alla, rms)
-        time.sleep(1)
+        time.sleep(10)
 
     prefix = str(int(10000000 * time.time()))
     gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
