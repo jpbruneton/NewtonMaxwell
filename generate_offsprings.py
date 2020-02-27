@@ -189,11 +189,16 @@ class generate_offsprings():
         # ------ arity 0 -------
 
         if char in self.voc.arity0_vec:
-            newchar = random.choice(tuple(x for x in self.voc.arity0_vec if x != char))
+            if len(self.voc.arity0_vec) >1:
+               newchar = random.choice(tuple(x for x in self.voc.arity0_vec if x != char))
+            else:
+                newchar = char
 
         elif char in self.voc.arity0_novec:
-            newchar = random.choice(tuple(x for x in self.voc.arity0_novec if x != char))
-
+            if len(self.voc.arity0_novec) >1:
+                newchar = random.choice(tuple(x for x in self.voc.arity0_novec if x != char))
+            else:
+                newchar = char
         # ------ arity 1 -------
         elif char in self.voc.arity1_novec:
             newchar = random.choice(tuple(x for x in self.voc.arity1_novec if x != char))

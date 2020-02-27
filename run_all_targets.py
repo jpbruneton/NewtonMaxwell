@@ -35,9 +35,10 @@ def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mo
     maxp = new
     derzero, derone = 1 , 1 #absence ou presence de fo et ou de fo'
     addrandom = config.add_random
+    max_norm, max_cross, max_dot = 0,0,0
 
     params = [poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
-           binp, maxp, derzero, derone, addrandom, voc]
+           binp, maxp, derzero, derone, addrandom, voc,max_norm, max_cross, max_dot]
     return params
 
 # -----------------------------------------------#
@@ -119,8 +120,8 @@ if __name__ == '__main__':
     filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
 
     #allow expert knowledge :
-    explicit_time_dependence = True
-    no_first_derivatives = False
+    explicit_time_dependence = False
+    no_first_derivatives = True
     use_distance = False
     planar_motion = True
     expert_knowledge =[explicit_time_dependence, no_first_derivatives, use_distance, planar_motion]
@@ -141,6 +142,5 @@ if __name__ == '__main__':
         maximal_size = 15
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
-
 
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

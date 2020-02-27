@@ -58,7 +58,6 @@ def save_qd_pool(pool):
 # -------------------------------------------------------------------------- #
 def evalme(onestate):
     train_targets, voc, state, u, look_for = onestate[0], onestate[1], onestate[2], onestate[3], onestate[4]
-
     results = []
     scalar_numbers, alla, rms = game_env.game_evaluate(state.reversepolish, state.formulas, voc, train_targets, 'train',u, look_for)
     results.append([rms, scalar_numbers, alla])
@@ -71,45 +70,13 @@ def evalme(onestate):
         else:
             rms, scalar_numbers, alla = results[1]
 
-    if state.reversepolish[-1] == voc.terminalsymbol:
-        L = len(state.reversepolish) -1
-    else:
-        L = len(state.reversepolish)
-
-    function_number = 0
-    for char in voc.arity1symbols:
-        function_number += state.reversepolish.count(char)
-
-    powernumber = 0
-    for char in state.reversepolish:
-        if char == voc.power_number:
-            powernumber += 1
-
-    fnumber, deronenumber = 0, 0
-    # if config.use_derivative: #todo revoir
-    #     for char in state.reversepolish:
-    #         if voc.modescalar == 'noA':
-    #             if char == 6:
-    #                 fnumber = 1
-    #             if char == 5:
-    #                 deronenumber = 1
-    #         else:
-    #             if char == 5:
-    #                 fnumber = 1
-    #             if char == 4:
-    #                 deronenumber = 1
-
-    game = Game(voc, state)
-    depth = game.getnumberoffunctions(state)
-
-    return rms, state, alla, scalar_numbers, L, function_number, powernumber, fnumber, deronenumber, depth
+    return rms, state, alla, scalar_numbers
 
 # -------------------------------------------------------------------------- #
 def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, calculus_mode):
 
     local_alleqs = {}
     for i in range(iteration):
-        #parallel cma
         print('')
         print('this is iteration', i)
         # this creates or extends a pool of states before evaluation
@@ -123,7 +90,6 @@ def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, c
         mp_pool = mp.Pool(config.cpus)
         asyncResult = mp_pool.map_async(evalme, pool_to_eval)
         results = asyncResult.get()
-        # close it
         mp_pool.close()
         mp_pool.join()
         print('pool eval done')
@@ -141,7 +107,6 @@ def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, c
         # init
         if gp.QD_pool is None:
             gp.QD_pool = results_by_bin
-
 
         newbin, replacements = gp.update_qd_pool(results_by_bin)
         save_qd_pool(gp.QD_pool)
@@ -171,11 +136,10 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
 
     # init target, dictionnaries, and meta parameters
     poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa,  binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
-    binp, maxp,  derzero, derone, addrandom, voc = params
+    binp, maxp,  derzero, derone, addrandom, voc, max_norm, max_cross, max_dot = params
 
-    if config.plot:
+    if config.verifonegivenfunction:
         formm1 = 'A*A*F0/((la.norm(F0, axis =1).reshape(5000,1)**(3)))'
-
         scalar_numbers, alla, rms = game_env.game_evaluate([1], formm1, voc, train_targets, 'train', u, look_for)
         print('donne:', scalar_numbers, alla, rms)
         time.sleep(1)
@@ -183,7 +147,7 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
     prefix = str(int(10000000 * time.time()))
     gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
                extend_ratio, maxa, bina, maxl_no_a, binl_no_a, maxf, binf, maxp, binp, derzero, derone,
-               addrandom, calculus_mode, maximal_size, None, None)
+               addrandom, calculus_mode, maximal_size, max_norm, max_cross, max_dot, None, None)
 
     iteration_a = config.iterationa
 

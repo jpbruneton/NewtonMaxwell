@@ -8,8 +8,7 @@ from Evaluate_fit import Evaluatefit
 import time
 import game_env
 import multiprocessing as mp
-from multiprocessing import Pool
-
+from game_env import Game
 
 # ============================  QD version ====================================#
 
@@ -18,7 +17,7 @@ class GP_QD():
 
     def __init__(self, delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
                   extend_ratio, maxa, bina, maxl, binl, maxf, binf, maxp, binp, derzero, derone, addrandom,
-                  calculculus_mode, maximal_size, qdpool, pool = None):
+                  calculculus_mode, maximal_size, max_norm, max_cross, max_dot, qdpool, pool = None):
 
         self.calculus_mode = calculculus_mode
         self.usesimplif = config.use_simplif
@@ -41,6 +40,9 @@ class GP_QD():
         self.binf = binf
         self.maxp = maxp
         self.binp = binp
+        self.maxdot = max_dot
+        self.maxcross = max_cross
+        self.maxnorm = max_norm
         self.derzero = derzero
         self.derone = derone
         self.maxder = 1
@@ -71,9 +73,7 @@ class GP_QD():
             del mp_pool
             return self.pool
 
-
         else:
-
             gp_motor = generate_offsprings(self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.maximal_size, self.voc, self.calculus_mode)
             all_states = []
             small_states=[]
@@ -175,22 +175,15 @@ class GP_QD():
     def bin_pool(self, results):
 
         results_by_bin = {}
-        ct=0
-        cif=0
-        cnotif=0
+
         # rescale and print which bin
         for oneresult in results:
-            rms, state, allA, Anumber, L, function_number, powernumber, fnumber, deronenumber, depth = oneresult
-            #print(reward, state, allA, Anumber, L, function_number, powernumber, trignumber, explognumber)
-            #if state.reversepolish[-1] == 1:
-            #    L = L - 1
-
-            #needs to be computed if mode 'noA'
-            #if self.voc.modescalar == 'noA':
-            #    Anumber = 0
-            #    for char in state.reversepolish:
-            #        if char in self.voc.pure_numbers:
-            #            Anumber+=1
+            rms, state, allA, Anumber = oneresult
+            game = Game(self.voc, state)
+            if self.calculus_mode == 'scalar':
+                L, function_number, mytargetnumber, firstder_number, depth, varnumber = game.get_features()
+            else:
+                L, function_number, mytargetnumber, firstder_number, depth, varnumber, dotnumber, normnumber, crossnumber = game.get_features()
 
             if Anumber >= self.maxa:
                 bin_a = self.maxa
@@ -216,66 +209,69 @@ class GP_QD():
                     if function_number >= bins_for_f[i] and function_number < bins_for_f[i + 1]:
                         bin_f = i
 
-            if fnumber >= self.maxder:
-                bin_fzero = self.maxder
+            if function_number ==0: #presence ou non de la fonction
+                bin_fzero = 0
             else:
-                bin_fzero = np.linspace(0, self.maxder, num = self.maxder+1)
-                for i in range(len(bin_fzero) - 1):
-                    if fnumber >= bin_fzero[i] and fnumber < bin_fzero[i + 1]:
-                        bin_fzero = i
+                bin_fzero = 1
 
-            if deronenumber >= self.maxder:
-                bin_fone = self.maxder
+            if varnumber == 0:  # presence ou non de la variale
+                bin_var = 0
             else:
-                bin_fone = np.linspace(0, self.maxder, num = self.maxder+1)
-                for i in range(len(bin_fone) - 1):
-                    if deronenumber >= bin_fone[i] and deronenumber < bin_fone[i + 1]:
-                        bin_fone = i
+                bin_var = 1
 
+            if firstder_number ==0: #et de la first der
+                bin_fone = 0
+            else:
+                bin_fone = 1
 
+            bin_d = 0
             bin_for_d = np.linspace(0, config.MAX_DEPTH, num=config.MAX_DEPTH + 2)
             for i in range(len(bin_for_d) - 1):
-                if depth >= bin_for_d[i] and deronenumber < bin_for_d[i + 1]:
+                if depth >= bin_for_d[i] and depth < bin_for_d[i + 1]:
                     bin_d = i
 
-            #exclude trivial cases in my grid
-            bin_d =0
+            if self.calculus_mode == 'vectorial':
+                if dotnumber >= self.maxdot:
+                    bin_dot = self.maxdot
+                else:
+                    bins_for_dot = np.linspace(0, self.maxdot, num=self.maxdot + 1)
+                    for i in range(len(bins_for_dot) - 1):
+                        if dotnumber >= bins_for_dot[i] and dotnumber < bins_for_dot[i + 1]:
+                            bin_dot = i
 
-            if bin_d ==0:
-                bin_d = 1
-            bin_d =0
+                if normnumber >= self.maxnorm:
+                    bin_norm = self.maxnorm
+                else:
+                    bins_for_norm = np.linspace(0, self.maxnorm, num=self.maxnorm + 1)
+                    for i in range(len(bins_for_norm) - 1):
+                        if normnumber >= bins_for_norm[i] and normnumber < bins_for_norm[i + 1]:
+                            bin_norm = i
 
-            if powernumber >= self.maxp:
-                bin_p = self.maxp
+                if crossnumber >= self.maxcross:
+                    bin_cross = self.maxcross
+                else:
+                    bins_for_cross = np.linspace(0, self.maxcross, num=self.maxcross + 1)
+                    for i in range(len(bins_for_cross) - 1):
+                        if crossnumber >= bins_for_cross[i] and crossnumber < bins_for_cross[i + 1]:
+                            bin_cross = i
+
+            if self.calculus_mode =='scalar':
+                if str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d, bin_var]) not in results_by_bin:
+                    if rms <config.minrms:
+                        results_by_bin.update({str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d, bin_var]): [rms, state, allA]})
+                else:
+                    prev_rms = results_by_bin[str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d, bin_var])][0]
+                    if rms < prev_rms:
+                        results_by_bin.update({str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d, bin_var]): [rms, state, allA]})
             else:
-                bins_for_p = np.linspace(0, self.maxp, num=self.maxp + 1)
-                for i in range(len(bins_for_p) - 1):
-                    if powernumber >= bins_for_p[i] and powernumber < bins_for_p[i + 1]:
-                        bin_p = i
+                if str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d, bin_var, bin_dot, bin_norm, bin_cross]) not in results_by_bin:
+                    if rms <config.minrms:
+                        results_by_bin.update({str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d,  bin_var,bin_dot, bin_norm, bin_cross]): [rms, state, allA]})
+                else:
+                    prev_rms = results_by_bin[str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d,  bin_var,bin_dot, bin_norm, bin_cross])][0]
+                    if rms < prev_rms:
+                        results_by_bin.update({str([bin_a, bin_l, bin_f, bin_fzero, bin_fone, bin_d,  bin_var,bin_dot, bin_norm, bin_cross]): [rms, state, allA]})
 
-
-            ct+=1
-            if str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d]) not in results_by_bin:
-                cif+=1
-                if rms <2:
-                    results_by_bin.update({str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d]): [rms, state, allA]})
-                    #print('new elem', state.formulas)
-                    #print([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f, bin_fzero, bin_fone, bin_d])
-                    #print('depth is', depth)
-                #print(results_by_bin)
-            else:
-                cnotif+=1
-                #print('happening', [bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])
-                #time.sleep(.2)
-                #print(state.formulas)
-                prev_rms = results_by_bin[str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d])][0]
-                #print('prev', results_by_bin[str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])])
-                #print('prev', results_by_bin[str([bin_a, bin_l, bin_exp, bin_trig, bin_p, bin_f])][1].formulas)
-                if rms < prev_rms:
-                    results_by_bin.update({str([bin_a, bin_l, bin_p, bin_f, bin_fzero, bin_fone, bin_d]): [rms, state, allA]})
-        #print(results_by_bin)
-        #print('me', len(results_by_bin))
-        print(ct, cif, cnotif)
         return results_by_bin
 
     # ---------------------------------------------------------------------------- #
@@ -288,14 +284,13 @@ class GP_QD():
             if binid not in self.QD_pool:
                 self.QD_pool.update({binid: newresults_by_bin[binid]})
                 newbin += 1
-
             else:
                 prev_rms = self.QD_pool[binid][0]
                 rms = newresults_by_bin[binid][0]
                 if rms < prev_rms:
                     self.QD_pool.update({binid: newresults_by_bin[binid]})
                     replacement += 1
-        print('news', newbin, replacement)
+        print('new bins and replacements', newbin, replacement)
         return newbin, replacement
 
 # ========================   end class gp_qd ====================== #

@@ -17,7 +17,7 @@ from AST import AST, Node
 import numpy as np
 import copy
 import time
-
+import random
 # =============================== CLASS: Game ================================ #
 
 class Game:
@@ -162,13 +162,10 @@ class Game:
             allowedchars = self.voc.arity0symbols #start either with a vec or a scalar
 
         else:
-
             # check if already terminated
             if self.state.reversepolish[-1] == self.voc.terminalsymbol or space_left == 0:
                 allowedchars = []
-
             else:
-
                 can_be_terminated, vec_number, stack = self.from_rpn_to_critical_info()
                 info = [self.state.formulas, can_be_terminated, vec_number, stack]
 
@@ -214,7 +211,6 @@ class Game:
                         else:
                             print('cant happen because can be terminated wd be >1', info)
                             raise ValueError
-
 
                     elif can_be_terminated == 2: #op required
                         if vec_number == 0:
@@ -330,6 +326,9 @@ class Game:
                                 allowedchars+= self.voc.arity1_novec
                             if stack[-1] == 1 and nu>=1 and self.getnumberoffunctions() < config.MAX_DEPTH:
                                 allowedchars += [self.voc.norm_number]
+                            #vrai aussi s'il reste assez de place:
+                            if stack[-1] == 1 and nu == 1 and self.getnumberoffunctions() < config.MAX_DEPTH and p-(t+1) >=3:
+                                allowedchars += [self.voc.norm_number]
 
                             lasts = stack[-2:]
                             if lasts == [0, 0]:
@@ -342,7 +341,14 @@ class Game:
                                 allowedchars += [self.voc.dot_number, self.voc.plusnumber, self.voc.minusnumber,
                                                 self.voc.wedge_number]
 
-                        #todo implement max depth encore to do
+                    #expressions trop longue : enforce terminal more often:
+                    if True:
+                        if nu==0 and t==0:
+                            if random.random() < 0.25:
+                                allowedchars = [self.voc.terminalsymbol]
+                            else:
+                                pass #laisse comme c etait
+
         return allowedchars
     # ---------------------------------------------------------------------------- #
     def allowedmoves_novectors(self):
@@ -447,7 +453,6 @@ class Game:
         ''' Given a next char, produce nextstate WITHOUT ACTUALLY UPDATING THE STATE (it is a virtual move)'''
         nextstate = copy.deepcopy(self.state.reversepolish)
         nextstate.append(nextchar)
-
         return State(self.voc, nextstate, self.calculus_mode)
 
     # ---------------------------------------------------------------------------- #
@@ -469,7 +474,6 @@ class Game:
                 return 0
 # ---------------------------------------------------------------------------- #
     def convert_to_ast(self):
-
         # only possible if the expression is a scalar, thus: for debug
         if self.scalar_counter() !=1:
             print(self.voc.numbers_to_formula_dict)
@@ -481,14 +485,12 @@ class Game:
         stack_of_nodes = []
         count = 1
         for number in self.state.reversepolish:
-
             #init:
             if stack_of_nodes == []:
                 ast = AST(number)
                 stack_of_nodes += [ast.onebottomnode]
 
             else:
-
                 if number in self.voc.arity0symbols or number == self.voc.true_zero_number or number == self.voc.neutral_element:
                     newnode = Node(number, 0, None, None ,count)
                     stack_of_nodes += [newnode]
@@ -497,10 +499,8 @@ class Game:
                     lastnode = stack_of_nodes[-1]
                     newnode = Node(number, 1, [lastnode], None ,count)
                     lastnode.parent = newnode
-
                     if len(stack_of_nodes) == 1:
                         stack_of_nodes = [newnode]
-
                     if len(stack_of_nodes) >= 2:
                         stack_of_nodes = stack_of_nodes[:-1] + [newnode]
 
@@ -512,30 +512,53 @@ class Game:
             count+=1
         #terminate
         ast.topnode = stack_of_nodes[0]
-
         return ast
 
+    # ------------------------
+    def get_features(self):
 
+        if self.state.reversepolish[-1] == self.voc.terminalsymbol:
+            L = len(self.state.reversepolish) - 1
+        else:
+            L = len(self.state.reversepolish)
 
-    # ---------------------------------------------------------
-    def rename_ai(self, formula):
-        scalar_numbers = formula.count('A')
-
-        if scalar_numbers >0:
-            neweq = ''
-            A_count = 0
-            for char in formula:
-                if char == 'A':
-                    neweq += 'A' + str(A_count)
-                    A_count += 1
-                else:
-                    neweq += char
-
-            return neweq, scalar_numbers
+        function_number = 0
+        mytargetnumber = 0
+        firstder_number = 0
+        depth = self.getnumberoffunctions()
+        varnumber = 0
+        if self.calculus_mode == 'scalar':
+            for char in self.state.reversepolish:
+                if char in self.voc.arity1symbols:
+                    function_number += 1
+                elif char == self.voc.targetfunction_number:
+                    mytargetnumber +=1
+                elif char == self.voc.first_der_number:
+                    firstder_number+=1
+                elif char == self.voc.var_numbers:
+                    varnumber+=1
+            return L, function_number, mytargetnumber, firstder_number, depth, varnumber
 
         else:
-            return formula, scalar_numbers
-
+            dotnumber = 0
+            normnumber = 0
+            crossnumber =0
+            for char in self.state.reversepolish:
+                if char in self.voc.arity1_novec:
+                    function_number += 1
+                elif char == self.voc.targetfunction_number:
+                    mytargetnumber +=1
+                elif char == self.voc.first_der_number:
+                    firstder_number+=1
+                elif char == self.voc.wedge_number:
+                    crossnumber+=1
+                elif char == self.voc.dot_number:
+                    normnumber+=1
+                elif char == self.voc.dot_number:
+                    dotnumber+=1
+                elif char == self.voc.var_numbers:
+                    varnumber += 1
+            return L, function_number, mytargetnumber, firstder_number, depth, varnumber, dotnumber, normnumber, crossnumber
 
 # =================  END class Game =========================== #
 
@@ -544,7 +567,7 @@ class Game:
 # create random eqs + simplify it with my rules
 def randomeqs(voc):
     game = Game(voc, state=None)
-    np.random.seed()
+    np.random.seed() #is it required?
     while game.isterminal() == 0:
         if voc.calculus_mode == 'scalar':
             nextchar = np.random.choice(game.allowedmoves_novectors())
@@ -554,12 +577,10 @@ def randomeqs(voc):
             nextchar = np.random.choice(allowed_moves)
             game.takestep(nextchar)
 
-    print('finally', game.state.formulas)
     if config.use_simplif:
         simplestate = simplif_eq(voc, game.state)
         simplegame = Game(voc, simplestate)
         return simplegame
-    #print('then', game.state.reversepolish, game.state.formulas)
 
     else:
         return game
@@ -568,18 +589,12 @@ def randomeqs(voc):
 def simplif_eq(voc, state, calculus_mode):
     count = 0
     change = 1
-
-    #print('start simplif', state.reversepolish, state.formulas)
     while change == 1:  # avoid possible infinite loop/ shouldnt happen, but secutity
         change, rpn = state.one_simplif()
-        #print('onesimplif', change, rpn)
-
         state = State(voc, rpn, calculus_mode)
-
         count += 1
         if count > 1000:
             change = 0
-    #print('so', state.formulas)
     return state
 
 # ---------------------------------------------------------------------------- #

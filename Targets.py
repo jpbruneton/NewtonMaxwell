@@ -90,7 +90,8 @@ class Voc():
         self.numbers_to_formula_dict, self.arity0symbols, self.arity1symbols, self.arity2symbols, self.true_zero_number, self.neutral_element, \
         self.infinite_number, self.terminalsymbol, self.pure_numbers, self.arity2symbols_no_power, self.power_number, self.var_numbers, \
         self.plusnumber, self.minusnumber, self.multnumber, self.divnumber, self.norm_number, self.dot_number, self.wedge_number, \
-        self.vectorial_numbers, self.arity0_vec, self.arity0_novec, self.arity1_vec, self.arity2_vec, self.arity2novec, self.arity1_novec\
+        self.vectorial_numbers, self.arity0_vec, self.arity0_novec, self.arity1_vec, self.arity2_vec, self.arity2novec, self.arity1_novec,\
+            self.targetfunction_number, self.first_der_number\
             = Build_dictionnaries.get_dic(self.n_targets, self.all_targets_name, u, self.calculus_mode, self.look_for, self.expert_knowledge)
 
 

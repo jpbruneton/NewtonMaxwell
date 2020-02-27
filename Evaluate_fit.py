@@ -301,6 +301,8 @@ class Evaluatefit:
             return self.scalar_numbers, allS, rms
 
         else:
+            if self.formulas == 'B':
+                print('ici')
             self.rename_formulas()
             allS = []
             if self.scalar_numbers == 0 and self.v_numbers == 0:

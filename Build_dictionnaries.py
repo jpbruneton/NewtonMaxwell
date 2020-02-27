@@ -89,13 +89,22 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     index0 = 2
     index1 = index0 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar)
     index2 = index1 + len(my_dic_variables)
+
+    target_function_number =2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables)
+    first_der_number = 2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables) + len(my_dic_actual_target)+len(my_dic_other_targets)
+    # todo ci dessus c'est un tuple rangé si multitarget
+
+
     if calculus_mode == 'vectorial' and len(my_dic_vec_number) !=0:
         vectorial_numbers = [index0 +  len(my_dic_scalar_number)]
     if calculus_mode == 'vectorial':
         vectorial_numbers.extend([i for i in range(index2, 2 + len(arity0dic))])
         arity0_vec = tuple(deepcopy(vectorial_numbers))
+    if explicit_time_dependence:
+        arity0_novec = (index0, index0+1+len(my_dic_vec_number)+len(my_dic_special_scalar))
+    else:
+        arity0_novec = [index0]
 
-    arity0_novec = (index0, index0+1+len(my_dic_vec_number)+len(my_dic_special_scalar))
     pure_numbers = tuple([i for i in range(index0, index1)])
     var_numbers = tuple([i for i in range(index1, index2)])
 
@@ -153,21 +162,19 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
 
     terminalsymbol = 1
 
-    if True:
-        all = [numbers_to_formula_dict, arity0symbols,
-               arity1symbols, arity2symbols, true_zero_number, neutral_element, \
-           infinite_number, terminalsymbol, pure_numbers,
-               arity2symbols_no_power, power_number, var_numbers, \
-           plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber,
-               vectorial_numbers, \
-           arity0_vec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec]
-        for elem in all:
-            print(elem)
+    all =[numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
+           infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
+           plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
+           arity0_vec, arity0_novec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec, target_function_number, first_der_number]
+    for elem in all:
+        print(elem)
 
-    print(arity0_novec)
+    {'1': 'halt', '2': 'A', '3': 'B', '4': 'F0', '5': 'np.sin(', '6': 'np.sqrt(', '7': 'np.exp(', '8': 'np.log(',
+     '9': 'la.norm(', '10': '+', '11': '-', '12': '*', '13': '/', '14': 'np.vdot(', '15': 'np.cross(', '16': '**',
+     '17': 'zero', '18': 'neutral', '19': 'infinity'}
 
     return numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
            infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
            plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
-           arity0_vec, arity0_novec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec
+           arity0_vec, arity0_novec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec, target_function_number, first_der_number
 

@@ -15,22 +15,19 @@ termination_nmrse = 1e-6
 
 #_________________Taget related_______________#
 
-
 # how many nested functions I authorize
 MAX_DEPTH = 1
 # power is taken only to a real number : avoid stuff like exp(x)^(x exp(x)) !!
-only_scalar_in_power = True
-
+only_scalar_in_power = False
 fromfile = False
 multiple_training_targets = True
-if fromfile:
 
+if fromfile:
     training_target_list = ['GWfiles\wh_2.txt', 'GWfiles\wl_2.txt']
     #training_target_list = ['OHAs/OH_0.5_-0.4_0.5_1.4.txt', 'OHAs/OH_0.7_-1.3_1.5_0.7.txt']
     maxsize = 15
 else:
     training_target_list = 0
-
 
 # _______________ QD algo related ______________
 auto_extent_size = False
@@ -38,7 +35,6 @@ add_random = True
 skip_no_a_part = False
 saveqd = False
 use_simplif = False
-
 
 import numpy as np
 def get_size(iteration):
@@ -50,11 +46,12 @@ def get_size(iteration):
     size = 2*internal_nodes[index]+1
     return size
 
-qd_init_pool_size = 400
+minrms = 10000000 # do not update the grid if rms is greater than this value
+qd_init_pool_size = 500
 extendpoolfactor = 1.5
 #which_target = 'fig1-waveform-H_phase2_1.txt'
 
-plot = False
+verifonegivenfunction = False
 tworunsineval = False
 popsize = '10'
 timelimit = '7*N'
