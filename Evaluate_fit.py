@@ -114,7 +114,7 @@ class Evaluatefit:
                     neweq = neweq.replace(toreplace, replace_by)
 
         string_to_replace = 'x0'
-        replace_by = '(x[0][:])'
+        replace_by = '(x[0][:].reshape(SIZE,1))'
         neweq = neweq.replace(string_to_replace, replace_by)
 
         for u in range(len(self.train_targets)):
@@ -159,6 +159,8 @@ class Evaluatefit:
 
     # ------------------
     def formula_eval_vectorial(self, x, F, Fp, S) :
+        mafonction = eval(self.formulas)
+
         try:
             mafonction = eval(self.formulas)
             if type(mafonction) != np.ndarray or np.isnan(np.sum(mafonction)) or np.isinf(np.sum(mafonction)) :

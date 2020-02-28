@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     #allow expert knowledge :
     explicit_time_dependence_allowed = False
-    no_first_derivatives = False
+    no_first_derivatives = True
     use_distance = False
     planar_motion = True
     expert_knowledge =[explicit_time_dependence_allowed, no_first_derivatives, use_distance, planar_motion]
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 15
+        maximal_size = 12
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

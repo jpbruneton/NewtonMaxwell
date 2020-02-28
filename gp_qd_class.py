@@ -220,6 +220,11 @@ class GP_QD():
                 bin_fone = 0
             else:
                 bin_fone = 1
+            if config.smallgrid :
+                bin_fzero = 0
+                bin_var = 0
+                bin_fone = 0
+
 
             bin_d = 0
             bin_for_d = np.linspace(0, config.MAX_DEPTH, num=config.MAX_DEPTH + 2)

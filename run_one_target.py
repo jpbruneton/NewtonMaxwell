@@ -141,13 +141,11 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
 
     if config.verifonegivenfunction:
         formm1 = 'A*(F0-F1)/((la.norm((F0-F1), axis =1).reshape(SIZE,1)**(3)))'
-        #formm1 = 'A*(F1-F0)'
-        #formm1 = 'np.cross((d_x0_F1),(B+(d_x0_F0)))'
 
 
         scalar_numbers, alla, rms = game_env.game_evaluate([1], formm1, voc, train_targets, 'train', u, look_for)
         print('donne:', scalar_numbers, alla, rms)
-        time.sleep(2)
+        time.sleep(5)
 
     prefix = str(int(10000000 * time.time()))
     gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,

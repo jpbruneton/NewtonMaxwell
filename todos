@@ -2,3 +2,8 @@
 - gerer train versus test
 - remettre le finish with least squares et le round to integer
 - globalement faut repenser tout ce dict et le simplifier
+- pb a deux corps avec rescale auto et grandeurs physique reele en entree
+- pour res propre : bests go to simpy, to refit/leastsquare/round, to re simpy, iteration juqu'a plus; puis, voir, un parsing latex
+- recoder le bining en propre + options
+
+- multi targets examples et backfit des params physiques
