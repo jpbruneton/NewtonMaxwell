@@ -83,7 +83,6 @@ class GP_QD():
                     small_states.append(self.QD_pool[str(bin_id)][1])
 
             self.smallstates = small_states
-            print('euh1', len(all_states))
 
             # +add new rd eqs for diversity. We add half the qd_pool size of random eqs
             if self.addrandom or self.maximal_size < 10:
@@ -101,8 +100,6 @@ class GP_QD():
                     ntries += 1
                 print('toi complet', time.time() -st)
 
-            print('euh2', len(all_states))
-            #print('trying', ntries, 'vs', toadd)
             ts = time.time()
             print('sizetocross', len(self.QD_pool))
             #then mutate and crossover

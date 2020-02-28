@@ -112,7 +112,7 @@ class State:
                     else:
                         addright = '(' + stack[-1] + ')'
 
-                    newstack = stack[:-2] + ['np.sum(' + addleft + '*' + addright+ ', axis = 1)']
+                    newstack = stack[:-2] + ['np.sum(' + addleft + '*' + addright+ ', axis = 1).reshape(SIZE,1)']
                     stack = newstack
 
                 elif number == self.voc.wedge_number: #c'est np.cross(a, b)
@@ -144,8 +144,6 @@ class State:
             else:
                 formula = stack[0]
 
-            #print('----------')
-            #print(formula)
             return formula
 
         else:
@@ -206,13 +204,11 @@ class State:
                 nninput = copy.deepcopy(self.reversepolish)
                 addzeros = self.voc.maximal_size - len(nninput)
                 nninput += [0]*addzeros
-                #print('check', len(nninput) == config.SENTENCELENGHT)
-                #probably a good idea to scale input between 0 and 1
+
                 nninput = [x/self.voc.outputdim for x in nninput]
             else:
                 nninput = copy.deepcopy(self.reversepolish)
                 nninput = [x/self.voc.outputdim for x in nninput]
-                #print('check', len(nninput) == config.SENTENCELENGHT)
 
         nninput = np.asarray(nninput)
 

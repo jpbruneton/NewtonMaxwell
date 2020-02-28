@@ -31,7 +31,6 @@ class Target():
         data = np.loadtxt(self.filenames[u], delimiter=',')
         n_targets = data.shape[1] -1
 
-
         t = data[:, 0]
         f0 = data[:, 1]
         target_functions = [f0]

@@ -116,9 +116,9 @@ if __name__ == '__main__':
     if noprint:
         kill_print()
 
-
     datasets = ['onebodyproblem', 'twobodyproblem']
     set = datasets[1]
+
     if set == 'onebodyproblem':
         filenames_train = ['data_loader/kepler_1.csv']#,'data_loader/x2_train(t).csv']
         filenames_test = ['data_loader/kepler_1.csv']#,'data_loader/x2_test(t).csv']
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     #allow expert knowledge :
     explicit_time_dependence_allowed = False
-    no_first_derivatives = True
+    no_first_derivatives = False
     use_distance = False
     planar_motion = True
     expert_knowledge =[explicit_time_dependence_allowed, no_first_derivatives, use_distance, planar_motion]
@@ -149,5 +149,4 @@ if __name__ == '__main__':
         maximal_size = 15
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
-
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

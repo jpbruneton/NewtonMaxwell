@@ -116,6 +116,7 @@ def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, c
 
 
         # save results and print
+
         saveme = printresults(train_targets, voc, calculus_mode)
         tnumber = 999
         valrmse, bf = saveme.saveresults(newbin, replacements, i, gp.QD_pool, gp.maxa, tnumber, local_alleqs, prefix, u, look_for)
@@ -139,10 +140,14 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
     binp, maxp,  derzero, derone, addrandom, voc, max_norm, max_cross, max_dot = params
 
     if config.verifonegivenfunction:
-        formm1 = 'A*(F0-F1)/((la.norm((F0-F1), axis =1).reshape(5000,1)**(3)))'
+        formm1 = 'A*(F0-F1)/((la.norm((F0-F1), axis =1).reshape(SIZE,1)**(3)))'
+        #formm1 = 'A*(F1-F0)'
+        #formm1 = 'np.cross((d_x0_F1),(B+(d_x0_F0)))'
+
+
         scalar_numbers, alla, rms = game_env.game_evaluate([1], formm1, voc, train_targets, 'train', u, look_for)
         print('donne:', scalar_numbers, alla, rms)
-        time.sleep(10)
+        time.sleep(2)
 
     prefix = str(int(10000000 * time.time()))
     gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
@@ -152,4 +157,38 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
     iteration_a = config.iterationa
 
     stop, qdpool, alleqs_a, iter_a, valrmse, bf = exec(train_targets, test_targets, u, voc, iteration_a, gp, prefix, look_for, calculus_mode)
+
+def test_wtf(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size):
+
+    # init target, dictionnaries, and meta parameters
+    poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
+    binp, maxp, derzero, derone, addrandom, voc, max_norm, max_cross, max_dot = params
+    gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
+               extend_ratio, maxa, bina, maxl_no_a, binl_no_a, maxf, binf, maxp, binp, derzero, derone,
+               addrandom, calculus_mode, maximal_size, max_norm, max_cross, max_dot, None, None)
+
+    iteration_a = config.iterationa
+    pool = gp.extend_pool()
+    print(len(pool))
+    for p in range(10):
+        print('new iteration,', p)
+        pool_to_eval = []
+        for state in pool:
+            pool_to_eval.append([train_targets, voc, state, u, look_for])
+        results = []
+        for state in pool_to_eval:
+            results.append([evalme(state)])
+
+        print('pool eval done')
+
+        results_by_bin = gp.bin_pool(results)
+
+        # init
+        if gp.QD_pool is None:
+            gp.QD_pool = results_by_bin
+
+        newbin, replacements = gp.update_qd_pool(results_by_bin)
+        save_qd_pool(gp.QD_pool)
+
+        pool = gp.extend_pool()
 

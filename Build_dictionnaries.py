@@ -90,8 +90,10 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     index1 = index0 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar)
     index2 = index1 + len(my_dic_variables)
 
-    target_function_number =2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables)
-    first_der_number = 2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables) + len(my_dic_actual_target)+len(my_dic_other_targets)
+    target_function_number = tuple([i for i in range(2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables), 2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables) + len(my_dic_actual_target)+len(my_dic_other_targets))])
+    first_der_number = tuple([i for i in range(2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables) + len(my_dic_actual_target)+len(my_dic_other_targets), 2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables) + len(my_dic_actual_target)+len(my_dic_other_targets) + len(my_dic_diff))])
+    #target_function_number = 2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables)
+    #first_der_number = 2 + len(my_dic_scalar_number) + len(my_dic_vec_number)+len(my_dic_special_scalar) + len(my_dic_variables) + len(my_dic_actual_target)+len(my_dic_other_targets)
     # todo ci dessus c'est un tuple rangé si multitarget
 
 
@@ -132,10 +134,7 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     arity1symbols = tuple([i for i in range(2 + a0, 2 + a0 + a1)])
     arity2symbols = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2)])
     arity2symbols_no_power = tuple([i for i in range(2 + a0 + a1, 2 + a0 + a1 + a2 -1)])
-    if calculus_mode == 'vectorial':
-        arity2symbols_novec = tuple([x for x in arity2symbols if x not in arity2_vec])
-    else:
-        arity2symbols_novec = arity2symbols
+
     norm_number = 2+a0+a1-1
     #dont change order of operations!
     plusnumber = 2 + a0 + a1
@@ -148,6 +147,12 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
     else:
         dotnumber = None
         wedgenumber = None
+
+    if calculus_mode == 'vectorial':
+
+        arity2symbols_novec = tuple([x for x in arity2symbols if x not in arity2_vec] + [plusnumber, minusnumber])
+    else:
+        arity2symbols_novec = arity2symbols
 
     #dont change the previous order or change this accordingly
     power_number = 1 + a0 + a1 + a2
@@ -166,15 +171,13 @@ def get_dic(n_targets, all_targets_name, u, calculus_mode, look_for, expert_know
            infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
            plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
            arity0_vec, arity0_novec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec, target_function_number, first_der_number]
-    for elem in all:
-        print(elem)
-
-    {'1': 'halt', '2': 'A', '3': 'B', '4': 'F0', '5': 'np.sin(', '6': 'np.sqrt(', '7': 'np.exp(', '8': 'np.log(',
-     '9': 'la.norm(', '10': '+', '11': '-', '12': '*', '13': '/', '14': 'np.vdot(', '15': 'np.cross(', '16': '**',
-     '17': 'zero', '18': 'neutral', '19': 'infinity'}
 
     return numbers_to_formula_dict, arity0symbols, arity1symbols, arity2symbols, true_zero_number, neutral_element, \
            infinite_number, terminalsymbol, pure_numbers, arity2symbols_no_power, power_number, var_numbers, \
            plusnumber, minusnumber, multnumber, divnumber, norm_number, dotnumber, wedgenumber, vectorial_numbers, \
            arity0_vec, arity0_novec, arity1_vec, arity2_vec, arity2symbols_novec, arity_1_novec, target_function_number, first_der_number
 
+
+#{'1': 'halt', '2': 'A', '3': 'B', '4': 'x0', '5': 'F0', '6': 'F1', '7': 'd_x0_F0', '8': 'd_x0_F1', '9': 'np.sin(',
+# '10': 'np.sqrt(', '11': 'np.exp(', '12': 'np.log(', '13': 'la.norm(', '14': '+', '15': '-', '16': '*', '17': '/',
+# '18': 'np.vdot(', '19': 'np.cross(', '20': '**', '21': 'zero', '22': 'neutral', '23': 'infinity'}

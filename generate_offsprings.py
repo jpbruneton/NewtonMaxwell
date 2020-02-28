@@ -184,7 +184,6 @@ class generate_offsprings():
             char_to_mutate = np.random.randint(0, L)
 
         char = prev_rpn[char_to_mutate]
-        print('entering mut', prev_rpn, state.formulas, char_to_mutate, char)
 
         # ------ arity 0 -------
 
@@ -239,13 +238,6 @@ class generate_offsprings():
             newstate = State(self.voc, prev_rpn, self.calculus_mode)
 
 
-        # debug check if mutated is ok
-        game = Game(self.voc, newstate)
-        print(newstate.reversepolish, newstate.formulas)
-        a,b,c = game.from_rpn_to_critical_info()
-        if a != 1 or b!= 1:
-            print('ici mut fausse', a, b, c, prev_rpn, char_to_mutate, char, newchar)
-
         # -------- return the new state:
 
         if self.usesimplif:
@@ -273,8 +265,6 @@ class generate_offsprings():
 
         game1 = Game(self.voc, prev_state1)
         game2 = Game(self.voc, prev_state2)
-        #if game1.getnumberoffunctions()>config.MAX_DEPTH:
-        #    print('ici', game1.state.formulas)
 
         ast1 = game1.convert_to_ast()
         ast2 = game2.convert_to_ast()
@@ -400,26 +390,8 @@ class generate_offsprings():
         game1 = Game(self.voc, prev_state1)
         game2 = Game(self.voc, prev_state2)
 
-        print('entering cross')
-        a, b, c = game1.from_rpn_to_critical_info()
-        if a != 1 or b != 1:
-            print('inittial state 1', prev_state1.reversepolish, game1.state.formulas)
-            raise ValueError
-
-        a, b, c = game2.from_rpn_to_critical_info()
-        if a != 1 or b != 1:
-            print('ici cross entering faux 2', a, b, c)
-            print('inittial state 2', prev_state2.reversepolish, game2.state.formulas)
-            raise ValueError
-
-        print('entering states for crossover are ok')
-
-        # if game1.getnumberoffunctions()>config.MAX_DEPTH:
-        #    print('ici', game1.state.formulas)
-
         ast1 = game1.convert_to_ast()
         ast2 = game2.convert_to_ast()
-
 
         rpn1 = prev_state1.reversepolish
         rpn2 = prev_state2.reversepolish
@@ -463,17 +435,9 @@ class generate_offsprings():
 
             bef_game1 = Game(self.voc, bfstate1)
             bef_game2 = Game(self.voc, bfstate2)
-            print('')
-            print('inittial state 1', prev_state1.reversepolish, game1.state.formulas)
-            print('inittial state 2', prev_state2.reversepolish, game2.state.formulas)
-
-            print('substate1', bfstate1.reversepolish, bfstate1.formulas)
-            print('substate2', bfstate2.reversepolish, bfstate2.formulas)
 
             _, vec_number1, _ = bef_game1.from_rpn_to_critical_info()
             _, vec_number2, _ = bef_game2.from_rpn_to_critical_info()
-            print('vec numbers', vec_number1, vec_number2)
-            print('')
 
             if vec_number1 == vec_number2:
                 # swap parents and children == swap subtrees
@@ -523,22 +487,6 @@ class generate_offsprings():
         game1 = Game(self.voc, state1)
         game2 = Game(self.voc, state2)
         toreturn = []
-
-        print('after swap', game1.state.reversepolish, game1.state.formulas)
-        print('after swap', game2.state.reversepolish, game2.state.formulas)
-        print('-----------------')
-
-        # debug crossovers
-
-        a, b, c = game1.from_rpn_to_critical_info()
-        if a != 1 or b != 1:
-            print('ici cross faux 1', a, b, c)
-            raise ValueError
-
-        a, b, c = game2.from_rpn_to_critical_info()
-        if a != 1 or b != 1:
-            print('ici cross faux 2', a, b, c)
-            raise ValueError
 
         # crossover can lead to true zero division thus :
         if self.voc.infinite_number in state1.reversepolish:

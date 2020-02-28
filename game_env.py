@@ -344,7 +344,7 @@ class Game:
                     #expressions trop longue : enforce terminal more often:
                     if True:
                         if nu==0 and t==0:
-                            if random.random() < 0.25:
+                            if random.random() < config.force_terminal:
                                 allowedchars = [self.voc.terminalsymbol]
                             else:
                                 pass #laisse comme c etait
@@ -546,9 +546,9 @@ class Game:
             for char in self.state.reversepolish:
                 if char in self.voc.arity1_novec:
                     function_number += 1
-                elif char == self.voc.targetfunction_number:
+                elif char in self.voc.targetfunction_number:
                     mytargetnumber +=1
-                elif char == self.voc.first_der_number:
+                elif char in self.voc.first_der_number:
                     firstder_number+=1
                 elif char == self.voc.wedge_number:
                     crossnumber+=1

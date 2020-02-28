@@ -1,4 +1,4 @@
 - reprendre la simplif cas vectoriel
 - gerer train versus test
 - remettre le finish with least squares et le round to integer
--
+- globalement faut repenser tout ce dict et le simplifier

@@ -43,6 +43,8 @@ class Evaluatefit:
         self.array_functions = [x[2] for x in self.train_targets]
         self.array_first_der = [x[3] for x in self.train_targets]
         self.size = self.variable[0].size
+        self.ones = np.ones(self.variable[0].size)
+
         if look_for == 'find_2nd_order_diff_eq':
             self.maxder = 2
             self.objectivefunction = self.mytarget_2der
@@ -53,12 +55,11 @@ class Evaluatefit:
             self.maxder = 0
             self.objectivefunction = self.mytarget_function
 
+
     # ---------------------------------------------------------------------------- #
     def rename_formulas(self):
         ''' index all the scalar 'A' by a A1, A2, etc, rename properly the differentials, and finally resize as it must '''
 
-        #print('entering')
-        #print(self.formulas)
         self.scalar_numbers = self.formulas.count('A')
         self.v_numbers = self.formulas.count('B')
 
@@ -82,7 +83,7 @@ class Evaluatefit:
 
             #first rename B to an array of scalars:
             string_to_replace = 'B'
-            replace_by = 'np.array([A*ones,A*ones,A*ones])'
+            replace_by = 'np.transpose(np.array([A*ones,A*ones,A*ones]))'
             self.formulas = self.formulas.replace(string_to_replace, replace_by)
             count = 0
 
@@ -137,10 +138,12 @@ class Evaluatefit:
         string_to_replace = 'SIZE'
         replace_by = str(self.size)
         neweq = neweq.replace(string_to_replace, replace_by)
+        string_to_replace = 'ones'
+        replace_by = 'self.ones'
+        neweq = neweq.replace(string_to_replace, replace_by)
 
         self.formulas = neweq
 
-        print('rename', neweq)
     # ---------------------------------------------------------------------------- #
     def formula_eval(self, x, f, fp, S) :
         try:
@@ -156,7 +159,6 @@ class Evaluatefit:
 
     # ------------------
     def formula_eval_vectorial(self, x, F, Fp, S) :
-        ones = np.ones(x[0].size)
         try:
             mafonction = eval(self.formulas)
             if type(mafonction) != np.ndarray or np.isnan(np.sum(mafonction)) or np.isinf(np.sum(mafonction)) :
@@ -171,10 +173,9 @@ class Evaluatefit:
     # ---------------------------------------------------------------------------- #
     def evaluation_target_vectorial(self, S):
         err = 0
-        success, eval = self.formula_eval_vectorial(self.variable, self.array_functions, self.array_first_der, S)
-
+        success, evalfunc = self.formula_eval_vectorial(self.variable, self.array_functions, self.array_first_der, S)
         if success == True:
-            diff = eval - self.objectivefunction
+            diff = evalfunc - self.objectivefunction
             err += (np.sum(diff ** 2))
             err /= np.sum(np.ones_like(diff))
         else:
@@ -185,10 +186,10 @@ class Evaluatefit:
     # ---------------------------------------------------------------------------- #
     def evaluation_target(self, a):
         err = 0
-        success, eval = self.formula_eval(self.variable, self.array_functions, self.array_first_der, a)
+        success, evalfunc = self.formula_eval(self.variable, self.array_functions, self.array_first_der, a)
 
         if success == True:
-            diff = eval - self.objectivefunction
+            diff = evalfunc - self.objectivefunction
             err += (np.sum(diff**2))
             err /= np.sum(np.ones_like(diff))
         else:
@@ -229,6 +230,7 @@ class Evaluatefit:
         # applies the cmaes fit:
         initialguess = 2 * np.random.rand(self.scalar_numbers+3*self.v_numbers) - 1
         initialsigma = np.random.randint(1, 5)
+
         try:
             res = cma.CMAEvolutionStrategy(initialguess, initialsigma,
                                            {'verb_disp': 0}).optimize(self.evaluation_target_vectorial).result
@@ -259,6 +261,7 @@ class Evaluatefit:
     # ------------------------------------------------------------------------------- #
     def eval_reward_nrmse_vectorial(self, S):
     #for validation only
+
         success, result = self.formula_eval_vectorial(self.variable, self.array_functions, self.array_first_der, S)
         if success:
             quadratic_cost = np.sum((self.objectivefunction - result)**2)
@@ -287,6 +290,7 @@ class Evaluatefit:
 
             # else: cmaes fit : ---------------------------------------------------------- #
             success, allS = self.best_A_cmaes()
+
             if success == False:
                 return self.scalar_numbers, [1] * self.scalar_numbers, 100000000
 
@@ -301,10 +305,10 @@ class Evaluatefit:
             return self.scalar_numbers, allS, rms
 
         else:
-            if self.formulas == 'B':
-                print('ici')
+
             self.rename_formulas()
             allS = []
+
             if self.scalar_numbers == 0 and self.v_numbers == 0:
                 rms = self.eval_reward_nrmse_vectorial(allS)
                 if rms > 100000000:
@@ -313,6 +317,7 @@ class Evaluatefit:
 
             # else: cmaes fit : ---------------------------------------------------------- #
             success, allS = self.best_vectorial_cmaes()
+
             if success == False:
                 return self.scalar_numbers + 3*self.v_numbers, [1] * (self.scalar_numbers+3*self.v_numbers), 100000000
 
