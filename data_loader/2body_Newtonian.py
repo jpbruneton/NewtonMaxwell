@@ -56,7 +56,7 @@ def TwoBodyEquations(w,t,G,m1,m2):
 #Package initial parameters
 init_params=sci.array([r1,r2,v1,v2]) #create array of initial params
 init_params=init_params.flatten() #flatten array to make it 1D
-time_span=sci.linspace(0,2,5000) #8 orbital periods and 500 points
+time_span=sci.linspace(0,2.5,5000) #8 orbital periods and 500 points
 #Run the ODE solver
 import scipy.integrate
 two_body_sol=sci.integrate.odeint(TwoBodyEquations,init_params,time_span,args=(G,m1,m2))

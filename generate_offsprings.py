@@ -13,10 +13,11 @@ import game_env
 # deepcopy required since state.reversepolish is a list : mutable
 
 class generate_offsprings():
-    def __init__(self, delete_ar1_ratio, p_mutate, p_cross, maximal_size, voc, calculus_mode):
+    def __init__(self, delete_ar1_ratio, delete_ar2_ratio, p_mutate, p_cross, maximal_size, voc, calculus_mode):
         self.usesimplif = config.use_simplif
         self.p_mutate = p_mutate
         self.delete_ar1_ratio = delete_ar1_ratio
+        self.delete_ar2_ratio  = delete_ar2_ratio
         self.p_cross = p_cross
         self.maximal_size = maximal_size
         self.voc = voc
@@ -204,7 +205,7 @@ class generate_offsprings():
 
         elif char == self.voc.arity1_vec:
             newchar = char
-            # pas pour la norme a moins d'ajouter norme squared sinon mut impossible
+            # pas de mut possible pour la norme a moins d'ajouter au moins un autre symbole, par exemple norme squared
 
         # ------ arity 2 -------
         elif char in self.voc.arity2symbols:
@@ -218,11 +219,13 @@ class generate_offsprings():
             elif stack[-2:] == [1,0]: #j'avais forcement un * ou / :
                 newchar = random.choice(tuple(x for x in [self.voc.multnumber, self.voc.divnumber] if x != char))
             elif stack[-2:] == [1, 1]:  # j'avais forcement un +, -, wedge, ou dot. Le dot doit rester dot sinon pb d'algebre
-                if char == self.voc.dot_number:
+                if char == self.voc.dot_number: #on ne peut pas muter un dot
                     newchar = char
                 else:
-                    newchar = random.choice(tuple(x for x in [self.voc.plusnumber, self.voc.minusnumber, self.voc.wedge_number] if x != char))
-
+                    # en proba uniforme : souvent trop de cross
+                    # newchar = random.choice(tuple(x for x in [self.voc.plusnumber, self.voc.minusnumber, self.voc.wedge_number] if x != char))
+                    # donc enforce pas trop de wedge products
+                    newchar = np.random.choice(np.array([self.voc.plusnumber, self.voc.minusnumber, self.voc.wedge_number]), p=[0.45, 0.45, 0.1])
         else:
             print('bugmutation', state.reversepolish, char_to_mutate, char)
             raise ValueError
@@ -233,6 +236,8 @@ class generate_offsprings():
             newrpn = prev_rpn[:char_to_mutate] + prev_rpn[char_to_mutate + 1:]
             newstate = State(self.voc, newrpn, self.calculus_mode)
             # print('af', newstate.formulas)
+
+
         else:  # or mutate
             prev_rpn[char_to_mutate] = newchar
             newstate = State(self.voc, prev_rpn, self.calculus_mode)
@@ -486,6 +491,9 @@ class generate_offsprings():
             # state2 = game2.state
         game1 = Game(self.voc, state1)
         game2 = Game(self.voc, state2)
+        #print('checkcrossovers enter with', game1.state.reversepolish)
+
+        # print('checkcrossovers end with', game11.state.reversepolish)
         toreturn = []
 
         # crossover can lead to true zero division thus :
@@ -514,3 +522,117 @@ class generate_offsprings():
             # print('succes')
 
         return True, toreturn[0], toreturn[1]
+
+        # ---------------------------------------------------------------------------- #
+
+    def vectorial_delete_one_subtree(self, state):
+
+        # here i make only crossovers between eqs1 resp. and eqs 2
+
+        prev_state = copy.deepcopy(state)
+
+        game = Game(self.voc, prev_state)
+
+        ast = game.convert_to_ast()
+        rpn = prev_state.reversepolish
+        #print('entering delete with', game.state.reversepolish, game.state.formulas)
+
+        # throw away the last '1' (== halt) if exists:
+        if rpn[-1] == 1:
+            array = np.asarray(rpn[:-1])
+        else:
+            array = np.asarray(rpn)
+
+
+        start = 2
+
+        # get all topnodes of possible subtrees
+        positions = np.where(array >= start)[0]
+
+        if positions.size > 0 :
+            maxretries = 10
+            gotone = False
+            count=0
+            while gotone is False and count < maxretries:
+                which = np.random.choice(positions)
+                getnonleafnode = which + 1
+                # get the node
+                operatornode = ast.from_ast_get_node(ast.topnode, getnonleafnode)[0]
+                before_swap_rpn = ast.from_ast_to_rpn(operatornode)
+                bfstate = State(self.voc, before_swap_rpn, self.calculus_mode)
+                bef_game = Game(self.voc, bfstate)
+                _, vec_number, _ = bef_game.from_rpn_to_critical_info()
+                grandparent = operatornode.parent
+                count+=1
+                if before_swap_rpn[-1] in self.voc.arity2symbols and grandparent is not None :
+                    gotone = True
+                    count = 0
+                    for child in grandparent.children:
+                        if child == operatornode:
+                            index = count
+                        count+=1
+
+            if gotone == False:
+                return False, prev_state
+
+            else:
+                #print('le node selectionne est', ast.from_ast_to_rpn(operatornode))
+                #print('fils gauche', ast.from_ast_to_rpn(operatornode.children[0]))
+                #print('fils droit', ast.from_ast_to_rpn(operatornode.children[1]))
+
+                #print('ready:', before_swap_rpn, bef_game.state.formulas)
+                vecs = []
+                for child in operatornode.children:
+                    rpnchild = ast.from_ast_to_rpn(child)
+                    #print('ici', rpnchild)
+                    statechild = State(self.voc, rpnchild, self.calculus_mode)
+                    gamechild = Game(self.voc, statechild)
+                    _, vec_number, _ = gamechild.from_rpn_to_critical_info()
+                    vecs.append(vec_number)
+
+                #print('then vec numbers', vecs)
+                if vecs == [0,0]:
+                    if random.random() <0.5:
+                        newnode = operatornode.children[0]
+                        #print('delete right')
+                    else:
+                        newnode = operatornode.children[1]
+                        #print('delete left')
+
+                elif vecs == [0, 1]:
+                    newnode = operatornode.children[1]
+                    #print('delete left')
+
+                elif vecs == [1, 0]:
+                    newnode = operatornode.children[0]
+                    #print('delete right')
+
+
+                elif vecs == [1, 1] and before_swap_rpn[-1] != self.voc.dot_number: #exclude dot product
+                    if random.random() <0.5:
+                        newnode = operatornode.children[0]
+                        #print('delete right')
+
+                    else:
+                        newnode = operatornode.children[1]
+                        #print('delete left')
+
+                else: #le cas du doot product
+                    return False, prev_state
+
+                grandparent.children[index] = newnode
+                # get the new reversepolish:
+                newrpn = ast.from_ast_to_rpn(ast.topnode)
+
+        # else cant delete tree
+        else:
+            return False, prev_state
+
+        # returns the new states
+        state = State(self.voc, newrpn, self.calculus_mode)
+        #print('finally', state.reversepolish, state.formulas)
+        #game = Game(self.voc, state)
+        #game.from_rpn_to_critical_info()
+        #print('bug?')
+
+        return True, state

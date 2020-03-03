@@ -46,8 +46,8 @@ def get_size(iteration):
     size = 2*internal_nodes[index]+1
     return size
 
-minrms = 10000000 # do not update the grid if rms is greater than this value
-qd_init_pool_size = 2000
+minrms = 10 # do not update the grid if rms is greater than this value
+qd_init_pool_size = 200
 extendpoolfactor = 1.5
 #which_target = 'fig1-waveform-H_phase2_1.txt'
 smallgrid = True
@@ -58,8 +58,8 @@ popsize = '10'
 timelimit = '7*N'
 
 # reward decreases if there are too many pure scalar parameters, given by:
-parsimony = 1500
-parsimony_cost = 0.02
+parsimony = 4
+parsimony_cost = 0.001
 
 # max number of scalars allowed in a rd eq:
 max_A_number = 1200

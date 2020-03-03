@@ -15,7 +15,7 @@ from game_env import Game
 # ---------------------------------------------------------------------------- #
 class GP_QD():
 
-    def __init__(self, delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
+    def __init__(self, delete_ar1_ratio, delete_ar2_ratio, p_mutate, p_cross, poolsize, voc,
                   extend_ratio, maxa, bina, maxl, binl, maxf, binf, maxp, binp, derzero, derone, addrandom,
                   calculculus_mode, maximal_size, max_norm, max_cross, max_dot, qdpool, pool = None):
 
@@ -23,6 +23,8 @@ class GP_QD():
         self.usesimplif = config.use_simplif
         self.p_mutate = p_mutate
         self.delete_ar1_ratio = delete_ar1_ratio
+        self.delete_ar2_ratio = delete_ar2_ratio
+
         self.p_cross= p_cross
         self.poolsize = poolsize
         self.pool = pool
@@ -74,7 +76,7 @@ class GP_QD():
             return self.pool
 
         else:
-            gp_motor = generate_offsprings(self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.maximal_size, self.voc, self.calculus_mode)
+            gp_motor = generate_offsprings(self.delete_ar1_ratio, self.delete_ar1_ratio, self.p_mutate, self.p_cross, self.maximal_size, self.voc, self.calculus_mode)
             all_states = []
             small_states=[]
             for bin_id in self.QD_pool:
@@ -114,50 +116,65 @@ class GP_QD():
                 state = all_states[index]
                 u = random.random()
 
-                if u <= self.p_mutate:
-                    count += 1
-                    if self.calculus_mode == 'scalar':
-                        s, mutatedstate = gp_motor.mutate(state)
-                    else:
-                        s, mutatedstate = gp_motor.vectorial_mutation(state)
+                if u <= self.delete_ar2_ratio:
+                    s, newstate = gp_motor.vectorial_delete_one_subtree(state)
+                    newpool.append(newstate)
 
-                    #if str(mutatedstate.reversepolish) not in alleqs:
-                    newpool.append(mutatedstate)
+                else:
+                    if u <= self.p_mutate:
+                        count += 1
+                        if self.calculus_mode == 'scalar':
+                            s, mutatedstate = gp_motor.mutate(state)
+                        else:
+                            s, mutatedstate = gp_motor.vectorial_mutation(state)
 
-                elif u <= self.p_cross:
-                    count += 2
+                        #if str(mutatedstate.reversepolish) not in alleqs:
+                        newpool.append(mutatedstate)
 
-                    index = np.random.randint(0, len(all_states))
-                    otherstate = all_states[index]  # this might crossover with itself : why not!
-                    if self.calculus_mode == 'scalar':
-                        success, state1, state2 = gp_motor.crossover(state, otherstate)
-                    else:
-                        success, state1, state2 = gp_motor.vectorial_crossover(state, otherstate)
+                    elif u <= self.p_cross:
+                        count += 2
 
-                    if success:
-                        #if str(state1.reversepolish) not in alleqs:
-                        newpool.append(state1)
-                        #if str(state2.reversepolish) not in alleqs:
-                        newpool.append(state2)
+                        index = np.random.randint(0, len(all_states))
+                        otherstate = all_states[index]  # this might crossover with itself : why not!
+                        if self.calculus_mode == 'scalar':
+                            count = 0
+                            success = False
+                            while success is False and count <10:
+                                success, state1, state2 = gp_motor.crossover(state, otherstate)
+                                count+=1
+                        else:
+                            count = 0
+                            success = False
+                            while success is False and count < 10:
+                                success, state1, state2 = gp_motor.crossover(state, otherstate)
+                                count+=1
 
-                else:  # mutate AND cross
-                    count += 2
+                            success, state1, state2 = gp_motor.vectorial_crossover(state, otherstate)
 
-                    index = np.random.randint(0, len(all_states))
-                    to_mutate = copy.deepcopy(all_states[index])
-                    if self.calculus_mode == 'scalar':
-                        s, prestate1 = gp_motor.mutate(state)
-                        s, prestate2 = gp_motor.mutate(to_mutate)
-                        suc, state1, state2 = gp_motor.crossover(prestate1, prestate2)
-                    else:
-                        s, prestate1 = gp_motor.vectorial_mutation(state)
-                        s, prestate2 = gp_motor.vectorial_mutation(to_mutate)
-                        suc, state1, state2 = gp_motor.vectorial_crossover(prestate1, prestate2)
-                    if suc:
-                        #if str(state1.reversepolish) not in alleqs:
-                        newpool.append(state1)
-                        #if str(state2.reversepolish) not in alleqs:
-                        newpool.append(state2)
+                        if success:
+                            #if str(state1.reversepolish) not in alleqs:
+                            newpool.append(state1)
+                            #if str(state2.reversepolish) not in alleqs:
+                            newpool.append(state2)
+
+                    else:  # mutate AND cross
+                        count += 2
+
+                        index = np.random.randint(0, len(all_states))
+                        to_mutate = copy.deepcopy(all_states[index])
+                        if self.calculus_mode == 'scalar':
+                            s, prestate1 = gp_motor.mutate(state)
+                            s, prestate2 = gp_motor.mutate(to_mutate)
+                            suc, state1, state2 = gp_motor.crossover(prestate1, prestate2)
+                        else:
+                            s, prestate1 = gp_motor.vectorial_mutation(state)
+                            s, prestate2 = gp_motor.vectorial_mutation(to_mutate)
+                            suc, state1, state2 = gp_motor.vectorial_crossover(prestate1, prestate2)
+                        if suc:
+                            #if str(state1.reversepolish) not in alleqs:
+                            newpool.append(state1)
+                            #if str(state2.reversepolish) not in alleqs:
+                            newpool.append(state2)
 
             print('avgtime', (time.time()-ts))
             #update self.pool
@@ -309,7 +326,9 @@ class printresults():
     def finalrename(self, bestform, A):
 
         formula = bestform
-
+        string_to_replace = 'B'
+        replace_by = '[A,A,A])'
+        self.formulas = self.formulas.replace(string_to_replace, replace_by)
         As = [int(1000000*x)/1000000 for x in A]
 
         if As != []:

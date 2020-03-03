@@ -136,7 +136,7 @@ def exec(train_targets, test_targets, u, voc, iteration, gp, prefix, look_for, c
 def main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size):
 
     # init target, dictionnaries, and meta parameters
-    poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa,  binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
+    poolsize, delete_ar1_ratio, delete_ar2_ratio, extend_ratio, p_mutate, p_cross, bina, maxa,  binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
     binp, maxp,  derzero, derone, addrandom, voc, max_norm, max_cross, max_dot = params
 
     if config.verifonegivenfunction:
@@ -148,7 +148,7 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
         time.sleep(5)
 
     prefix = str(int(10000000 * time.time()))
-    gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
+    gp = GP_QD(delete_ar1_ratio, delete_ar2_ratio, p_mutate, p_cross, poolsize, voc,
                extend_ratio, maxa, bina, maxl_no_a, binl_no_a, maxf, binf, maxp, binp, derzero, derone,
                addrandom, calculus_mode, maximal_size, max_norm, max_cross, max_dot, None, None)
 
@@ -159,9 +159,9 @@ def main(params, train_targets, test_targets, u, look_for, calculus_mode, maxima
 def test_wtf(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size):
 
     # init target, dictionnaries, and meta parameters
-    poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
+    poolsize, delete_ar1_ratio, delete_ar2_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
     binp, maxp, derzero, derone, addrandom, voc, max_norm, max_cross, max_dot = params
-    gp = GP_QD(delete_ar1_ratio, p_mutate, p_cross, poolsize, voc,
+    gp = GP_QD(delete_ar2_ratio, p_mutate, p_cross, poolsize, voc,
                extend_ratio, maxa, bina, maxl_no_a, binl_no_a, maxf, binf, maxp, binp, derzero, derone,
                addrandom, calculus_mode, maximal_size, max_norm, max_cross, max_dot, None, None)
 

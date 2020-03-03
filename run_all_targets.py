@@ -18,6 +18,8 @@ def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mo
         delete_ar1_ratio = 0.3
     else:
         delete_ar1_ratio = 0.8
+
+    delete_ar2_ratio = 0.1
     extend_ratio = config.extendpoolfactor
     p_mutate = 0.4
     p_cross = 0.8
@@ -28,8 +30,8 @@ def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mo
     maxa = bina
     binl_a = maximal_size # number of bins for length of an eq
     maxl_a = maximal_size
-    binf = 160 # number of bins for number of fonctions
-    maxf = 160
+    binf = 0 # number of bins for number of fonctions
+    maxf = 0
     new = 0
     binp = new  # number of bins for number of powers
     maxp = new
@@ -37,7 +39,7 @@ def init_parameters(actual_train_target, all_targets_name, look_for, calculus_mo
     addrandom = config.add_random
     max_norm, max_cross, max_dot = 0,0,0
 
-    params = [poolsize, delete_ar1_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
+    params = [poolsize, delete_ar1_ratio, delete_ar2_ratio, extend_ratio, p_mutate, p_cross, bina, maxa, binl_no_a, maxl_no_a, binl_a, maxl_a, binf, maxf, \
            binp, maxp, derzero, derone, addrandom, voc,max_norm, max_cross, max_dot]
     return params
 
@@ -127,8 +129,8 @@ if __name__ == '__main__':
         filenames_test = ['data_loader/Newtonian2body_body1.csv', 'data_loader/Newtonian2body_body2.csv']  # ,'data_loader/x2_test(t).csv']
 
     #allow expert knowledge :
-    explicit_time_dependence_allowed = False
-    no_first_derivatives = True
+    explicit_time_dependence_allowed = True
+    no_first_derivatives = False
     use_distance = False
     planar_motion = True
     expert_knowledge =[explicit_time_dependence_allowed, no_first_derivatives, use_distance, planar_motion]
@@ -146,7 +148,7 @@ if __name__ == '__main__':
         actual_test_target = test_targets[u]
         possible_modes = ['find_function', 'find_1st_order_diff_eq', 'find_2nd_order_diff_eq', 'find_primitive']
         look_for = possible_modes[2] #defaults is second order diff eq
-        maximal_size = 12
+        maximal_size = 15
         # main exec
         params = init_parameters(actual_train_target, all_targets_name, look_for, calculus_mode, maximal_size, u, expert_knowledge)
         run_one_target.main(params, train_targets, test_targets, u, look_for, calculus_mode, maximal_size)

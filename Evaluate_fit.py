@@ -326,10 +326,12 @@ class Evaluatefit:
             # ---------------------------------------------------------------------------- #
             # else, compute some actual reward:
             rms = self.eval_reward_nrmse_vectorial(allS)
-
+            n_scalars = self.scalar_numbers + 3*self.v_numbers
+            if n_scalars > config.parsimony:
+                rms = rms - config.parsimony_cost*(n_scalars - config.parsimony)
             # now compare the three and chose the best
             if rms > 100000000:
                 rms = 100000000
 
-            return (self.scalar_numbers + 3*self.v_numbers), allS, rms
+            return n_scalars, allS, rms
 
